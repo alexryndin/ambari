@@ -2,9 +2,9 @@
   "href" : "http://c6401.ambari.apache.org:8080/api/v1/stacks2?_=1399980862861",
   "items" : [
     {
-      "href" : "http://c6401.ambari.apache.org:8080/api/v1/stacks2/HDP",
+      "href" : "http://c6401.ambari.apache.org:8080/api/v1/stacks2/ADH",
       "Stacks" : {
-        "stack_name" : "HDP"
+        "stack_name" : "ADH"
       }
     }
   ]
