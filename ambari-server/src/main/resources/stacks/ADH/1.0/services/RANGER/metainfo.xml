@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0"?>
 <!--
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -18,42 +18,13 @@
  * limitations under the License.
  */
 -->
-
-<configuration>
-  <property>
-    <name>ranger.service.host</name>
-    <value>{{kms_host}}</value>
-  </property>
-
-  <property>
-    <name>ranger.service.http.port</name>
-    <value>{{kms_port}}</value>
-  </property>
-
-  <property>
-    <name>ranger.service.https.port</name>
-    <value>9393</value>
-  </property>
-  
-  <property>
-    <name>ranger.service.shutdown.port</name>
-    <value>7085</value>
-  </property>
-  
-  <property>
-    <name>ranger.contextName</name>
-    <value>/kms</value>
-  </property>     
-  
-  <property>
-    <name>xa.webapp.dir</name>
-    <value>./webapp</value>
-  </property> 
-  
-  <property>
-    <name>ranger.service.https.attrib.ssl.enabled</name>
-    <value>false</value>
-    <description></description>
-  </property>
-
-</configuration>
+<metainfo>
+  <schemaVersion>2.0</schemaVersion>
+  <services>
+    <service>
+      <name>RANGER</name>
+      <extends>common-services/RANGER/0.4.0</extends>
+      <version>0.4.0.2.2</version>
+    </service>
+  </services>
+</metainfo>

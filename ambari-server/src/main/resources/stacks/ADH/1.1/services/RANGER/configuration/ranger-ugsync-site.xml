@@ -15,7 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<configuration>
+<configuration supports_final="true">
   <property>
     <name>ranger.usersync.keystore.file</name>
     <value>/usr/hdp/current/ranger-usersync/conf/unixauthservice.jks</value>
@@ -38,10 +38,5 @@
     <name>ranger.usersync.credstore.filename</name>
     <value>/usr/hdp/current/ranger-usersync/conf/ugsync.jceks</value>
     <description>Credential store file name for user sync, specify full path</description>
-  </property>
-  <property>
-    <name>ranger.usersync.policymgr.keystore</name>
-    <value>/usr/hdp/current/ranger-usersync/conf/ugsync.jceks</value>
-    <description/>
   </property>
 </configuration>

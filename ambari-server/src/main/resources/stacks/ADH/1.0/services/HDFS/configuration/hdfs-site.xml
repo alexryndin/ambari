@@ -48,6 +48,21 @@
   </property>
 
   <property>
+    <name>dfs.namenode.inode.attributes.provider.class</name>
+    <description>Enable ranger hdfs plugin</description>
+    <depends-on>
+      <property>
+        <type>ranger-hdfs-plugin-properties</type>
+        <name>ranger-hdfs-plugin-enabled</name>
+      </property>
+    </depends-on>
+    <value-attributes>
+      <overridable>false</overridable>
+    </value-attributes>
+  </property>
+
+
+  <property>
     <name>dfs.webhdfs.enabled</name>
     <value>true</value>
     <display-name>WebHDFS enabled</display-name>
