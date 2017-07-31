@@ -25,9 +25,9 @@ def setup_ranger_hbase(upgrade_type=None):
   if params.has_ranger_admin:
 
     if params.xml_configurations_supported:
-      from resource_management.libraries.functions.setup_ranger_plugin_xml import setup_ranger_plugin
+      from resource_management.libraries.functions.adh_setup_ranger_plugin_xml import setup_ranger_plugin
     else:
-      from resource_management.libraries.functions.setup_ranger_plugin import setup_ranger_plugin
+      from resource_management.libraries.functions.adh_setup_ranger_plugin import setup_ranger_plugin
     
     hdp_version = None
 
@@ -63,7 +63,7 @@ def setup_ranger_hbase(upgrade_type=None):
       )
       params.HdfsResource(None, action="execute")
 
-    setup_ranger_plugin('hbase-client', 'hbase', 
+    adh_setup_ranger_plugin('hbase-client', 'hbase', 
                         params.downloaded_custom_connector, params.driver_curl_source,
                         params.driver_curl_target, params.java64_home,
                         params.repo_name, params.hbase_ranger_plugin_repo,

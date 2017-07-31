@@ -447,3 +447,15 @@ if has_ranger_admin:
   #For SQLA explicitly disable audit to DB for Ranger
   if xa_audit_db_flavor == 'sqla':
     xa_audit_db_is_enabled = False
+
+  downloaded_custom_connector = None
+  previous_jdbc_jar_name = None
+  driver_curl_source = None
+  driver_curl_target = None
+  previous_jdbc_jar = None
+
+  # to get db connector related properties
+  if has_ranger_admin:
+    xa_audit_db_flavor = config['configurations']['admin-properties']['DB_FLAVOR']
+    sql_connector_jar = ''
+

@@ -23,7 +23,7 @@ def setup_ranger_kafka():
 
   if params.has_ranger_admin:
 
-    from resource_management.libraries.functions.setup_ranger_plugin_xml import setup_ranger_plugin
+    from resource_management.libraries.functions.adh_setup_ranger_plugin_xml import setup_ranger_plugin
 
     if params.retryAble:
       Logger.info("Kafka: Setup ranger: command retry enables thus retrying if ranger admin is down !")
@@ -50,7 +50,7 @@ def setup_ranger_kafka():
         )
         params.HdfsResource(None, action="execute")
 
-    setup_ranger_plugin('kafka-broker', 'kafka', 
+    adh_setup_ranger_plugin('kafka-broker', 'kafka', 
                         params.downloaded_custom_connector, params.driver_curl_source,
                         params.driver_curl_target, params.java64_home,
                         params.repo_name, params.kafka_ranger_plugin_repo,

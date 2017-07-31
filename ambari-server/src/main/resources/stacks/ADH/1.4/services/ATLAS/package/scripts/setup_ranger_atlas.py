@@ -21,7 +21,7 @@ def setup_ranger_atlas(upgrade_type=None):
 
   if params.has_ranger_admin:
 
-    from resource_management.libraries.functions.setup_ranger_plugin_xml import setup_ranger_plugin
+    from resource_management.libraries.functions.adh_setup_ranger_plugin_xml import setup_ranger_plugin
 
     if params.retry_enabled:
       Logger.info("ATLAS: Setup ranger: command retry enables thus retrying if ranger admin is down !")
@@ -48,7 +48,7 @@ def setup_ranger_atlas(upgrade_type=None):
         )
         params.HdfsResource(None, action="execute")
 
-    setup_ranger_plugin('atlas-server', 'atlas',None,
+    adh_setup_ranger_plugin('atlas-server', 'atlas',None,
                         params.downloaded_custom_connector, params.driver_curl_source,
                         params.driver_curl_target, params.java64_home,
                         params.repo_name, params.atlas_ranger_plugin_repo,
