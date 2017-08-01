@@ -18,12 +18,12 @@
 <configuration>
   <property>
     <name>ranger.usersync.keystore.file</name>
-    <value>/usr/hdp/current/ranger-usersync/conf/unixauthservice.jks</value>
+    <value>/usr/lib/ranger-usersync/conf/unixauthservice.jks</value>
     <description>Keystore file used for usersync</description>
   </property>
   <property>
     <name>ranger.usersync.truststore.file</name>
-    <value>/usr/hdp/current/ranger-usersync/conf/mytruststore.jks</value>
+    <value>/usr/lib/ranger-usersync/conf/mytruststore.jks</value>
     <description>Truststore used for usersync, required if usersync -&gt; ranger admin communication is SSL enabled</description>
   </property>
   <property>
@@ -36,12 +36,12 @@
   </property>
   <property>
     <name>ranger.usersync.credstore.filename</name>
-    <value>/usr/hdp/current/ranger-usersync/conf/ugsync.jceks</value>
+    <value>/usr/lib/ranger-usersync/conf/ugsync.jceks</value>
     <description>Credential store file name for user sync, specify full path</description>
   </property>
   <property>
     <name>ranger.usersync.policymgr.keystore</name>
-    <value>/usr/hdp/current/ranger-usersync/conf/ugsync.jceks</value>
+    <value>/usr/lib/ranger-usersync/conf/ugsync.jceks</value>
     <description/>
   </property>
 </configuration>
