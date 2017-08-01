@@ -50,6 +50,14 @@ class RangerAdmin(Script):
     
     #install another solr instance for ranger audits
     Execute(format('./solr_for_audit_setup/setup.sh'), environment={'JAVA_HOME': params.java_home}, user=root)
+    
+    #install another solr instance for ranger audits
+    Execute(format(''), environment={'JAVA_HOME': params.java_home}, user=root)
+    
+    ranger_user = params.unix_user
+    hadoop_group = 'hadoop'
+    Execute(("chown", format("{ranger_user}") + ":" + format("{hadoop_group}"), '/etc/hadoop/conf/core-site.xml'),
+             sudo=True)
 
   def stop(self, env, upgrade_type=None):
     import params
