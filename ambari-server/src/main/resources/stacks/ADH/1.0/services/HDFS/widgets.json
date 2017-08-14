@@ -68,32 +68,6 @@
           }
         },
         {
-          "widget_name": "NN Connection Load",
-          "description": "Number of open RPC connections being managed by NameNode.",
-          "widget_type": "GRAPH",
-          "is_visible": true,
-          "metrics": [
-            {
-              "name": "rpc.rpc.NumOpenConnections",
-              "metric_path": "metrics/rpc/NumOpenConnections",
-              "category": "",
-              "service_name": "HDFS",
-              "component_name": "NAMENODE",
-              "host_component_criteria": "host_components/metrics/dfs/FSNamesystem/HAState=active"
-            }
-          ],
-          "values": [
-            {
-              "name": "Open Connections",
-              "value": "${rpc.rpc.NumOpenConnections}"
-            }
-          ],
-          "properties": {
-            "graph_type": "LINE",
-            "time_range": "1"
-          }
-        },
-        {
           "widget_name": "NameNode Heap",
           "description": "Heap memory committed and Heap memory used with respect to time.",
           "widget_type": "GRAPH",
@@ -207,43 +181,6 @@
             "graph_type": "LINE",
             "time_range": "1",
             "display_unit": "%"
-          }
-        },
-        {
-          "widget_name": "NameNode RPC",
-          "description": "Compares the average time spent for RPC request in a queue and RPC request being processed.",
-          "widget_type": "GRAPH",
-          "is_visible": true,
-          "metrics": [
-            {
-              "name": "rpc.rpc.RpcQueueTimeAvgTime",
-              "metric_path": "metrics/rpc/RpcQueueTime_avg_time",
-              "service_name": "HDFS",
-              "component_name": "NAMENODE",
-              "host_component_criteria": "host_components/metrics/dfs/FSNamesystem/HAState=active"
-            },
-            {
-              "name": "rpc.rpc.RpcProcessingTimeAvgTime",
-              "metric_path": "metrics/rpc/RpcProcessingTime_avg_time",
-              "service_name": "HDFS",
-              "component_name": "NAMENODE",
-              "host_component_criteria": "host_components/metrics/dfs/FSNamesystem/HAState=active"
-            }
-          ],
-          "values": [
-            {
-              "name": "RPC Queue Wait time",
-              "value": "${rpc.rpc.RpcQueueTimeAvgTime}"
-            },
-            {
-              "name": "RPC Processing time",
-              "value": "${rpc.rpc.RpcProcessingTimeAvgTime}"
-            }
-          ],
-          "properties": {
-            "graph_type": "LINE",
-            "time_range": "1",
-            "display_unit": "ms"
           }
         },
         {
