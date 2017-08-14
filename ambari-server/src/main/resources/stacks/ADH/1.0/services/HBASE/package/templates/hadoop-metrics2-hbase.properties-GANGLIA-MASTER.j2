@@ -54,27 +54,19 @@ hbase.extendedperiod = 3600
 hbase.class=org.apache.hadoop.metrics2.sink.timeline.HadoopTimelineMetricsSink
 hbase.period={{metrics_collection_period}}
 hbase.collector={{metric_collector_host}}:{{metric_collector_port}}
-hbase.protocol=http
-hbase.port=6188
 
 jvm.class=org.apache.hadoop.metrics2.sink.timeline.HadoopTimelineMetricsSink
 jvm.period={{metrics_collection_period}}
 jvm.collector={{metric_collector_host}}:{{metric_collector_port}}
-jvm.protocol=http
-jvm.port=6188
 
 rpc.class=org.apache.hadoop.metrics2.sink.timeline.HadoopTimelineMetricsSink
 rpc.period={{metrics_collection_period}}
 rpc.collector={{metric_collector_host}}:{{metric_collector_port}}
-rpc.protocol=http
-rpc.port=6188
 
 hbase.sink.timeline.class=org.apache.hadoop.metrics2.sink.timeline.HadoopTimelineMetricsSink
 hbase.sink.timeline.period={{metrics_collection_period}}
 hbase.sink.timeline.sendInterval={{metrics_report_interval}}000
 hbase.sink.timeline.collector={{metric_collector_host}}:{{metric_collector_port}}
-hbase.sink.timeline.protocol=http
-hbase.sink.timeline.port=6188
 
 {% else %}
 
@@ -84,8 +76,6 @@ hbase.sink.timeline.port=6188
 hbase.class=org.apache.hadoop.metrics.ganglia.GangliaContext31
 hbase.period=10
 hbase.servers={{ganglia_server_host}}:8663
-hbase.protocol=http
-hbase.port=6188
 
 # Configuration of the "jvm" context for ganglia
 # Pick one: Ganglia 3.0 (former) or Ganglia 3.1 (latter)
@@ -93,8 +83,6 @@ hbase.port=6188
 jvm.class=org.apache.hadoop.metrics.ganglia.GangliaContext31
 jvm.period=10
 jvm.servers={{ganglia_server_host}}:8663
-jvm.protocol=http
-jvm.port=6188
 
 # Configuration of the "rpc" context for ganglia
 # Pick one: Ganglia 3.0 (former) or Ganglia 3.1 (latter)
@@ -102,8 +90,6 @@ jvm.port=6188
 rpc.class=org.apache.hadoop.metrics.ganglia.GangliaContext31
 rpc.period=10
 rpc.servers={{ganglia_server_host}}:8663
-rpc.protocol=http
-rpc.port=6188
 
 #Ganglia following hadoop example
 hbase.sink.ganglia.class=org.apache.hadoop.metrics2.sink.ganglia.GangliaSink31
@@ -120,5 +106,5 @@ hbase.sink.ganglia.servers={{ganglia_server_host}}:8663
 {% endif %}
 
 # Disable HBase metrics for regions/tables/regionservers by default.
-#*.source.filter.class=org.apache.hadoop.metrics2.filter.GlobFilter
-#hbase.*.source.filter.exclude=*Regions*
+*.source.filter.class=org.apache.hadoop.metrics2.filter.GlobFilter
+hbase.*.source.filter.exclude=*Regions*
