@@ -40,7 +40,7 @@ limitations under the License.
           </commandScript>
           <dependencies>
             <dependency>
-              <name>SPARK/SPARK_CLIENT</name>
+              <name>SPARK2/SPARK2_CLIENT</name>
               <scope>host</scope>
               <auto-deploy>
                 <enabled>true</enabled>
