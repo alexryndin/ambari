@@ -20,7 +20,7 @@
   <services>
     <service>
       <name>HIVE</name>
-      <version>2.3.0.1.5</version>
+      <version>1.2.1.1.4</version>
 
       <osSpecifics>
         <osSpecific>
@@ -104,6 +104,10 @@
           </packages>
         </osSpecific>
       </osSpecifics>
+      <configuration-dependencies>
+        <config-type>application-properties</config-type>
+        <config-type>hive-atlas-application.properties</config-type>
+      </configuration-dependencies>
 
     </service>
   </services>
