@@ -24,6 +24,7 @@ class ADH11StackAdvisor(ADH10StackAdvisor):
     childRecommendConfDict = {
       "OOZIE": self.recommendOozieConfigurations,
       "HIVE": self.recommendHiveConfigurations,
+      "HIVE2": self.recommendHive2Configurations,
       "TEZ": self.recommendTezConfigurations,
       "STORM": self.recommendStormConfigurations,
       "FALCON": self.recommendFalconConfigurations
@@ -146,6 +147,59 @@ class ADH11StackAdvisor(ADH10StackAdvisor):
         if "hostnames" in meta:
           self.put_proxyuser_value("HTTP", meta["hostnames"], services=services, configurations=configurations, put_function=putCoreSiteProperty)
 
+  def recommendHive2Configurations(self, configurations, clusterData, services, hosts):
+    hiveSiteProperties = getSiteProperties(services['configurations'], 'hive-site')
+    hiveEnvProperties = getSiteProperties(services['configurations'], 'hive-env')
+    containerSize = clusterData['mapMemory'] if clusterData['mapMemory'] > 2048 else int(clusterData['reduceMemory'])
+    containerSize = min(clusterData['containers'] * clusterData['ramPerContainer'], containerSize)
+    container_size_bytes = int(containerSize)*1024*1024
+    putHiveEnvProperty = self.putProperty(configurations, "hive-env", services)
+    putHiveProperty = self.putProperty(configurations, "hive-site", services)
+    putHiveProperty('hive.auto.convert.join.noconditionaltask.size', int(round(container_size_bytes / 3)))
+    putHiveProperty('hive.tez.java.opts', "-server -Xmx" + str(int(round((0.8 * containerSize) + 0.5)))
+                    + "m -Djava.net.preferIPv4Stack=true -XX:NewRatio=8 -XX:+UseNUMA -XX:+UseParallelGC -XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps")
+    putHiveProperty('hive.tez.container.size', containerSize)
+
+    # javax.jdo.option.ConnectionURL recommendations
+    if hiveEnvProperties and self.checkSiteProperties(hiveEnvProperties, 'hive_database', 'hive_database_type'):
+      putHiveEnvProperty('hive_database_type', self.getDBTypeAlias(hiveEnvProperties['hive_database']))
+    if hiveEnvProperties and hiveSiteProperties and self.checkSiteProperties(hiveSiteProperties, 'javax.jdo.option.ConnectionDriverName') and self.checkSiteProperties(hiveEnvProperties, 'hive_database'):
+      putHiveProperty('javax.jdo.option.ConnectionDriverName', self.getDBDriver(hiveEnvProperties['hive_database']))
+    if hiveSiteProperties and hiveEnvProperties and self.checkSiteProperties(hiveSiteProperties, 'ambari.hive.db.schema.name', 'javax.jdo.option.ConnectionURL') and self.checkSiteProperties(hiveEnvProperties, 'hive_database'):
+      hiveServerHost = self.getHostWithComponent('HIVE2', 'HIVE2_SERVER', services, hosts)
+      hiveDBConnectionURL = hiveSiteProperties['javax.jdo.option.ConnectionURL']
+      protocol = self.getProtocol(hiveEnvProperties['hive_database'])
+      oldSchemaName = getOldValue(self, services, "hive-site", "ambari.hive.db.schema.name")
+      oldDBType = getOldValue(self, services, "hive-env", "hive_database")
+      # under these if constructions we are checking if hive server hostname available,
+      # if it's default db connection url with "localhost" or if schema name was changed or if db type was changed (only for db type change from default mysql to existing mysql)
+      # or if protocol according to current db type differs with protocol in db connection url(other db types changes)
+      if hiveServerHost is not None:
+        if (hiveDBConnectionURL and "//localhost" in hiveDBConnectionURL) or oldSchemaName or oldDBType or (protocol and hiveDBConnectionURL and not hiveDBConnectionURL.startswith(protocol)):
+          dbConnection = self.getDBConnectionString(hiveEnvProperties['hive_database']).format(hiveServerHost['Hosts']['host_name'], hiveSiteProperties['ambari.hive.db.schema.name'])
+          putHiveProperty('javax.jdo.option.ConnectionURL', dbConnection)
+
+    servicesList = self.get_services_list(services)
+    if "PIG" in servicesList:
+        ambari_user = self.getAmbariUser(services)
+        ambariHostName = socket.getfqdn()
+        webHcatSiteProperty = self.putProperty(configurations, "webhcat-site", services)
+        webHcatSiteProperty("webhcat.proxyuser.{0}.hosts".format(ambari_user), ambariHostName)
+        webHcatSiteProperty("webhcat.proxyuser.{0}.groups".format(ambari_user), "*")
+        old_ambari_user = self.getOldAmbariUser(services)
+        if old_ambari_user is not None:
+            webHcatSitePropertyAttributes = self.putPropertyAttribute(configurations, "webhcat-site")
+            webHcatSitePropertyAttributes("webhcat.proxyuser.{0}.hosts".format(old_ambari_user), 'delete', 'true')
+            webHcatSitePropertyAttributes("webhcat.proxyuser.{0}.groups".format(old_ambari_user), 'delete', 'true')
+
+    if "HDFS" in servicesList or "YARN" in servicesList:
+      if self.is_secured_cluster(services):
+        putCoreSiteProperty = self.putProperty(configurations, "core-site", services)
+
+        meta = self.get_service_component_meta("HIVE2", "WEBHCAT_SERVER", services)
+        if "hostnames" in meta:
+          self.put_proxyuser_value("HTTP", meta["hostnames"], services=services, configurations=configurations, put_function=putCoreSiteProperty)
+
   def recommendTezConfigurations(self, configurations, clusterData, services, hosts):
     putTezProperty = self.putProperty(configurations, "tez-site")
     putTezProperty("tez.am.resource.memory.mb", int(clusterData['amMemory']))
@@ -176,12 +230,25 @@ class ADH11StackAdvisor(ADH10StackAdvisor):
     parentValidators = super(ADH11StackAdvisor, self).getServiceConfigurationValidators()
     childValidators = {
       "HIVE": {"hive-site": self.validateHiveConfigurations},
+      "HIVE2": {"hive-site": self.validateHive2Configurations},
       "TEZ": {"tez-site": self.validateTezConfigurations}
     }
     self.mergeValidators(parentValidators, childValidators)
     return parentValidators
 
   def validateHiveConfigurations(self, properties, recommendedDefaults, configurations, services, hosts):
+    validationItems = [ {"config-name": 'hive.tez.container.size', "item": self.validatorLessThenDefaultValue(properties, recommendedDefaults, 'hive.tez.container.size')},
+                        {"config-name": 'hive.tez.java.opts', "item": self.validateXmxValue(properties, recommendedDefaults, 'hive.tez.java.opts')},
+                        {"config-name": 'hive.auto.convert.join.noconditionaltask.size', "item": self.validatorLessThenDefaultValue(properties, recommendedDefaults, 'hive.auto.convert.join.noconditionaltask.size')} ]
+    yarnSiteProperties = getSiteProperties(configurations, "yarn-site")
+    if yarnSiteProperties:
+      yarnSchedulerMaximumAllocationMb = to_number(yarnSiteProperties["yarn.scheduler.maximum-allocation-mb"])
+      hiveTezContainerSize = to_number(properties['hive.tez.container.size'])
+      if hiveTezContainerSize is not None and yarnSchedulerMaximumAllocationMb is not None and hiveTezContainerSize > yarnSchedulerMaximumAllocationMb:
+        validationItems.append({"config-name": 'hive.tez.container.size', "item": self.getWarnItem("hive.tez.container.size is greater than the maximum container size specified in yarn.scheduler.maximum-allocation-mb")})
+    return self.toConfigurationValidationProblems(validationItems, "hive-site")
+
+  def validateHive2Configurations(self, properties, recommendedDefaults, configurations, services, hosts):
     validationItems = [ {"config-name": 'hive.tez.container.size', "item": self.validatorLessThenDefaultValue(properties, recommendedDefaults, 'hive.tez.container.size')},
                         {"config-name": 'hive.tez.java.opts', "item": self.validateXmxValue(properties, recommendedDefaults, 'hive.tez.java.opts')},
                         {"config-name": 'hive.auto.convert.join.noconditionaltask.size', "item": self.validatorLessThenDefaultValue(properties, recommendedDefaults, 'hive.auto.convert.join.noconditionaltask.size')} ]

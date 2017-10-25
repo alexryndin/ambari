@@ -22,7 +22,7 @@
       <name>HIVE2</name>
       <version>2.3.0.1.5</version>
       <displayName>Hive 2</displayName>
-      <comment>Data warehouse system for ad-hoc queries &amp; analysis of large datasets and table &amp; storage management service</comment>
+      <comment>New Data warehouse system for ad-hoc queries &amp; analysis of large datasets and table &amp; storage management service</comment>
 
 
       <components>
@@ -133,7 +133,7 @@
               <scope>cluster</scope>
               <auto-deploy>
                 <enabled>true</enabled>
-                <co-locate>HIVE/WEBHCAT_SERVER</co-locate>
+                <co-locate>HIVE2/WEBHCAT_SERVER</co-locate>
               </auto-deploy>
             </dependency>
             <dependency>

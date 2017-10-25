@@ -46,11 +46,11 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
 
     if "SPARK" in servicesList:
       if "SPARK_THRIFTSERVER" in servicesList:
-        if not "HIVE_SERVER" in servicesList:
-          message = "SPARK_THRIFTSERVER requires HIVE services to be selected."
+        if not ("HIVE2_SERVER" in servicesList or "HIVE_SERVER" in servicesList):
+          message = "SPARK_THRIFTSERVER requires HIVE2 services to be selected."
           childItems.append( {"type": 'host-component', "level": 'ERROR', "message": message, "component-name": 'SPARK_THRIFTSERVER'} )
 
-      hmsHosts = self.__getHosts(componentsList, "HIVE_METASTORE") if "HIVE" in servicesList else []
+      hmsHosts = self.__getHosts(componentsList, "HIVE_METASTORE") if ("HIVE" in servicesList or "HIVE2" in servicesList) else []
       sparkTsHosts = self.__getHosts(componentsList, "SPARK_THRIFTSERVER") if "SPARK" in servicesList else []
 
       # if Spark Thrift Server is deployed but no Hive Server is deployed
@@ -76,6 +76,7 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
       "HDFS": self.recommendHDFSConfigurations,
       "YARN": self.recommendYARNConfigurations,
       "HIVE": self.recommendHIVEConfigurations,
+      "HIVE2": self.recommendHIVE2Configurations,
       "HBASE": self.recommendHBASEConfigurations,
       "KAFKA": self.recommendKAFKAConfigurations,
       "RANGER": self.recommendRangerConfigurations,
@@ -95,6 +96,13 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
     if "HIVE" in self.getServiceNames(services):
       if not "hive-site" in configurations:
         self.recommendHIVEConfigurations(configurations, clusterData, services, hosts)
+
+      if "hive-site" in configurations and "hive.tez.container.size" in configurations["hive-site"]["properties"]:
+        putTezProperty("tez.task.resource.memory.mb", configurations["hive-site"]["properties"]["hive.tez.container.size"])
+
+    if "HIVE2" in self.getServiceNames(services):
+      if not "hive-site" in configurations:
+        self.recommendHIVE2Configurations(configurations, clusterData, services, hosts)
 
       if "hive-site" in configurations and "hive.tez.container.size" in configurations["hive-site"]["properties"]:
         putTezProperty("tez.task.resource.memory.mb", configurations["hive-site"]["properties"]["hive.tez.container.size"])
@@ -217,6 +225,104 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
 
   def recommendHIVEConfigurations(self, configurations, clusterData, services, hosts):
     super(ADH13StackAdvisor, self).recommendHIVEConfigurations(configurations, clusterData, services, hosts)
+    putHiveSiteProperty = self.putProperty(configurations, "hive-site", services)
+    putHiveServerProperty = self.putProperty(configurations, "hiveserver2-site", services)
+    putHiveEnvProperty = self.putProperty(configurations, "hive-env", services)
+    putHiveSitePropertyAttribute = self.putPropertyAttribute(configurations, "hive-site")
+    servicesList = [service["StackServices"]["service_name"] for service in services["services"]]
+    # hive_security_authorization == 'ranger'
+    if str(configurations["hive-env"]["properties"]["hive_security_authorization"]).lower() == "ranger":
+      putHiveServerProperty("hive.security.authorization.manager", "org.apache.ranger.authorization.hive.authorizer.RangerHiveAuthorizerFactory")
+
+    # TEZ JVM options
+    jvmGCParams = "-XX:+UseParallelGC"
+    if "ambari-server-properties" in services and "java.home" in services["ambari-server-properties"]:
+      # JDK8 needs different parameters
+      match = re.match(".*\/jdk(1\.\d+)[\-\_\.][^/]*$", services["ambari-server-properties"]["java.home"])
+      if match and len(match.groups()) > 0:
+        # Is version >= 1.8
+        versionSplits = re.split("\.", match.group(1))
+        if versionSplits and len(versionSplits) > 1 and int(versionSplits[0]) > 0 and int(versionSplits[1]) > 7:
+          jvmGCParams = "-XX:+UseG1GC -XX:+ResizeTLAB"
+    putHiveSiteProperty('hive.tez.java.opts', "-server -Djava.net.preferIPv4Stack=true -XX:NewRatio=8 -XX:+UseNUMA " + jvmGCParams + " -XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps")
+
+    # if hive using sqla db, then we should add DataNucleus property
+    sqla_db_used = 'hive-env' in services['configurations'] and 'hive_database' in services['configurations']['hive-env']['properties'] and \
+                   services['configurations']['hive-env']['properties']['hive_database'] == 'Existing SQL Anywhere Database'
+    if sqla_db_used:
+      putHiveSiteProperty('datanucleus.rdbms.datastoreAdapterClassName','org.datanucleus.store.rdbms.adapter.SQLAnywhereAdapter')
+    else:
+      putHiveSitePropertyAttribute('datanucleus.rdbms.datastoreAdapterClassName', 'delete', 'true')
+
+    # Atlas
+    hooks_property = "hive.exec.post.hooks"
+    atlas_hook_class = "org.apache.atlas.hive.hook.HiveHook"
+    if hooks_property in configurations["hive-site"]["properties"]:
+      hooks_value = configurations["hive-site"]["properties"][hooks_property]
+    else:
+      hooks_value = ""
+
+    hive_hooks = [x.strip() for x in hooks_value.split(",")]
+    hive_hooks = [x for x in hive_hooks if x != ""]
+    is_atlas_present_in_cluster = "ATLAS" in servicesList
+
+    enable_external_atlas_for_hive = False
+    enable_atlas_hook = False
+
+    if 'hive-atlas-application.properties' in services['configurations'] and 'enable.external.atlas.for.hive' in services['configurations']['hive-atlas-application.properties']['properties']:
+      enable_external_atlas_for_hive = services['configurations']['hive-atlas-application.properties']['properties']['enable.external.atlas.for.hive'].lower() == "true"
+
+    if is_atlas_present_in_cluster:
+      putHiveEnvProperty("hive.atlas.hook", "true")
+    elif enable_external_atlas_for_hive:
+      putHiveEnvProperty("hive.atlas.hook", "true")
+    else:
+      putHiveEnvProperty("hive.atlas.hook", "false")
+
+    if 'hive-env' in configurations and 'hive.atlas.hook' in configurations['hive-env']['properties']:
+      enable_atlas_hook = configurations['hive-env']['properties']['hive.atlas.hook'] == "true"
+    elif 'hive-env' in services['configurations'] and 'hive.atlas.hook' in services['configurations']['hive-env']['properties']:
+      enable_atlas_hook = services['configurations']['hive-env']['properties']['hive.atlas.hook'] == "true"
+
+    if enable_atlas_hook:
+      # Append atlas hook if not already present.
+      is_atlas_hook_in_config = atlas_hook_class in hive_hooks
+      if not is_atlas_hook_in_config:
+        hive_hooks.append(atlas_hook_class)
+    else:
+      # Remove the atlas hook since Atlas service is not present.
+      hive_hooks = [x for x in hive_hooks if x != atlas_hook_class]
+
+    # Convert hive_hooks back to a csv, unless there are 0 elements, which should be " "
+    hooks_value = " " if len(hive_hooks) == 0 else ",".join(hive_hooks)
+    putHiveSiteProperty(hooks_property, hooks_value)
+
+    # This is no longer used in HDP 2.5, but still needed in HDP 2.3 and 2.4
+    atlas_server_host_info = self.getHostWithComponent("ATLAS", "ATLAS_SERVER", services, hosts)
+    if is_atlas_present_in_cluster and atlas_server_host_info:
+      atlas_rest_host = atlas_server_host_info['Hosts']['host_name']
+      scheme = "http"
+      metadata_port = "21000"
+      atlas_server_default_https_port = "21443"
+      tls_enabled = "false"
+      if 'application-properties' in services['configurations']:
+        if 'atlas.enableTLS' in services['configurations']['application-properties']['properties']:
+          tls_enabled = services['configurations']['application-properties']['properties']['atlas.enableTLS']
+        if 'atlas.server.http.port' in services['configurations']['application-properties']['properties']:
+          metadata_port = services['configurations']['application-properties']['properties']['atlas.server.http.port']
+        if tls_enabled.lower() == "true":
+          scheme = "https"
+          if 'atlas.server.https.port' in services['configurations']['application-properties']['properties']:
+            metadata_port =  services['configurations']['application-properties']['properties']['atlas.server.https.port']
+          else:
+            metadata_port = atlas_server_default_https_port
+      putHiveSiteProperty('atlas.rest.address', '{0}://{1}:{2}'.format(scheme, atlas_rest_host, metadata_port))
+    else:
+      putHiveSitePropertyAttribute('atlas.cluster.name', 'delete', 'true')
+      putHiveSitePropertyAttribute('atlas.rest.address', 'delete', 'true')
+
+  def recommendHIVE2Configurations(self, configurations, clusterData, services, hosts):
+    super(ADH13StackAdvisor, self).recommendHIVE2Configurations(configurations, clusterData, services, hosts)
     putHiveSiteProperty = self.putProperty(configurations, "hive-site", services)
     putHiveServerProperty = self.putProperty(configurations, "hiveserver2-site", services)
     putHiveEnvProperty = self.putProperty(configurations, "hive-env", services)
@@ -501,7 +607,7 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
     required_services = [{'service' : 'YARN', 'config-type': 'yarn-env', 'property-name': 'yarn_user', 'proxy-category': ['hosts', 'users', 'groups']},
     {'service' : 'SPARK', 'config-type': 'livy-env', 'property-name': 'livy_user', 'proxy-category': ['hosts', 'users', 'groups']}]
 
-    required_services_for_secure = [{'service' : 'HIVE', 'config-type': 'hive-env', 'property-name': 'hive_user', 'proxy-category': ['hosts', 'users']},
+    required_services_for_secure = [{'service' : 'HIVE2', 'config-type': 'hive-env', 'property-name': 'hive_user', 'proxy-category': ['hosts', 'users']},
     {'service' : 'OOZIE', 'config-type': 'oozie-env', 'property-name': 'oozie_user', 'proxy-category': ['hosts', 'users']}]
 
     if security_enabled:
@@ -729,6 +835,7 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
       {'service_name': 'YARN', 'audit_file': 'ranger-yarn-audit'},
       {'service_name': 'HBASE', 'audit_file': 'ranger-hbase-audit'},
       {'service_name': 'HIVE', 'audit_file': 'ranger-hive-audit'},
+      {'service_name': 'HIVE2', 'audit_file': 'ranger-hive-audit'},
       {'service_name': 'KNOX', 'audit_file': 'ranger-knox-audit'},
       {'service_name': 'KAFKA', 'audit_file': 'ranger-kafka-audit'},
       {'service_name': 'STORM', 'audit_file': 'ranger-storm-audit'}
@@ -784,6 +891,7 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
       {'service_name': 'YARN', 'config_type': 'ranger-yarn-security'},
       {'service_name': 'HBASE', 'config_type': 'ranger-hbase-security'},
       {'service_name': 'HIVE', 'config_type': 'ranger-hive-security'},
+      {'service_name': 'HIVE2', 'config_type': 'ranger-hive-security'},
       {'service_name': 'KNOX', 'config_type': 'ranger-knox-security'},
       {'service_name': 'KAFKA', 'config_type': 'ranger-kafka-security'},
       {'service_name': 'RANGER_KMS','config_type': 'ranger-kms-security'},
@@ -943,6 +1051,8 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
       "HDFS": {"hdfs-site": self.validateHDFSConfigurations},
       "HIVE": {"hiveserver2-site": self.validateHiveServer2Configurations,
                "hive-site": self.validateHiveConfigurations},
+      "HIVE2": {"hiveserver2-site": self.validateHive2Server2Configurations,
+               "hive-site": self.validateHive2Configurations},
       "HBASE": {"hbase-site": self.validateHBASEConfigurations},
       "KAKFA": {"kafka-broker": self.validateKAFKAConfigurations},
       "RANGER": {"admin-properties": self.validateRangerAdminConfigurations,
@@ -998,8 +1108,101 @@ class ADH13StackAdvisor(ADH12StackAdvisor):
     configurationValidationProblems.extend(parentValidationProblems)
     return configurationValidationProblems
 
+  def validateHive2Configurations(self, properties, recommendedDefaults, configurations, services, hosts):
+    parentValidationProblems = super(ADH13StackAdvisor, self).validateHive2Configurations(properties, recommendedDefaults, configurations, services, hosts)
+    hive_site = properties
+    hive_env_properties = getSiteProperties(configurations, "hive-env")
+    validationItems = []
+    sqla_db_used = "hive_database" in hive_env_properties and \
+                   hive_env_properties['hive_database'] == 'Existing SQL Anywhere Database'
+    prop_name = "datanucleus.rdbms.datastoreAdapterClassName"
+    prop_value = "org.datanucleus.store.rdbms.adapter.SQLAnywhereAdapter"
+    if sqla_db_used:
+      if not prop_name in hive_site:
+        validationItems.append({"config-name": prop_name,
+                              "item": self.getWarnItem(
+                              "If Hive using SQL Anywhere db." \
+                              " {0} needs to be added with value {1}".format(prop_name,prop_value))})
+      elif prop_name in hive_site and hive_site[prop_name] != "org.datanucleus.store.rdbms.adapter.SQLAnywhereAdapter":
+        validationItems.append({"config-name": prop_name,
+                                "item": self.getWarnItem(
+                                  "If Hive using SQL Anywhere db." \
+                                  " {0} needs to be set to {1}".format(prop_name,prop_value))})
+
+    configurationValidationProblems = self.toConfigurationValidationProblems(validationItems, "hive-site")
+    configurationValidationProblems.extend(parentValidationProblems)
+    return configurationValidationProblems
+
   def validateHiveServer2Configurations(self, properties, recommendedDefaults, configurations, services, hosts):
     super(ADH13StackAdvisor, self).validateHiveServer2Configurations(properties, recommendedDefaults, configurations, services, hosts)
+    hive_server2 = properties
+    validationItems = []
+    #Adding Ranger Plugin logic here
+    ranger_plugin_properties = getSiteProperties(configurations, "ranger-hive-plugin-properties")
+    hive_env_properties = getSiteProperties(configurations, "hive-env")
+    ranger_plugin_enabled = 'hive_security_authorization' in hive_env_properties and hive_env_properties['hive_security_authorization'].lower() == 'ranger'
+    servicesList = [service["StackServices"]["service_name"] for service in services["services"]]
+    ##Add stack validations only if Ranger is enabled.
+    if ("RANGER" in servicesList):
+      ##Add stack validations for  Ranger plugin enabled.
+      if ranger_plugin_enabled:
+        prop_name = 'hive.security.authorization.manager'
+        prop_val = "org.apache.ranger.authorization.hive.authorizer.RangerHiveAuthorizerFactory"
+        if prop_name in hive_server2 and hive_server2[prop_name] != prop_val:
+          validationItems.append({"config-name": prop_name,
+                                  "item": self.getWarnItem(
+                                  "If Ranger Hive Plugin is enabled."\
+                                  " {0} under hiveserver2-site needs to be set to {1}".format(prop_name,prop_val))})
+        prop_name = 'hive.security.authenticator.manager'
+        prop_val = "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator"
+        if prop_name in hive_server2 and hive_server2[prop_name] != prop_val:
+          validationItems.append({"config-name": prop_name,
+                                  "item": self.getWarnItem(
+                                  "If Ranger Hive Plugin is enabled."\
+                                  " {0} under hiveserver2-site needs to be set to {1}".format(prop_name,prop_val))})
+        prop_name = 'hive.security.authorization.enabled'
+        prop_val = 'true'
+        if prop_name in hive_server2 and hive_server2[prop_name] != prop_val:
+          validationItems.append({"config-name": prop_name,
+                                  "item": self.getWarnItem(
+                                  "If Ranger Hive Plugin is enabled."\
+                                  " {0} under hiveserver2-site needs to be set to {1}".format(prop_name, prop_val))})
+        prop_name = 'hive.conf.restricted.list'
+        prop_vals = 'hive.security.authorization.enabled,hive.security.authorization.manager,hive.security.authenticator.manager'.split(',')
+        current_vals = []
+        missing_vals = []
+        if hive_server2 and prop_name in hive_server2:
+          current_vals = hive_server2[prop_name].split(',')
+          current_vals = [x.strip() for x in current_vals]
+
+        for val in prop_vals:
+          if not val in current_vals:
+            missing_vals.append(val)
+
+        if missing_vals:
+          validationItems.append({"config-name": prop_name,
+            "item": self.getWarnItem("If Ranger Hive Plugin is enabled."\
+            " {0} under hiveserver2-site needs to contain missing value {1}".format(prop_name, ','.join(missing_vals)))})
+      ##Add stack validations for  Ranger plugin disabled.
+      elif not ranger_plugin_enabled:
+        prop_name = 'hive.security.authorization.manager'
+        prop_val = "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory"
+        if prop_name in hive_server2 and hive_server2[prop_name] != prop_val:
+          validationItems.append({"config-name": prop_name,
+                                  "item": self.getWarnItem(
+                                  "If Ranger Hive Plugin is disabled."\
+                                  " {0} needs to be set to {1}".format(prop_name,prop_val))})
+        prop_name = 'hive.security.authenticator.manager'
+        prop_val = "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator"
+        if prop_name in hive_server2 and hive_server2[prop_name] != prop_val:
+          validationItems.append({"config-name": prop_name,
+                                  "item": self.getWarnItem(
+                                  "If Ranger Hive Plugin is disabled."\
+                                  " {0} needs to be set to {1}".format(prop_name,prop_val))})
+    return self.toConfigurationValidationProblems(validationItems, "hiveserver2-site")
+
+  def validateHive2Server2Configurations(self, properties, recommendedDefaults, configurations, services, hosts):
+    super(ADH13StackAdvisor, self).validateHive2Server2Configurations(properties, recommendedDefaults, configurations, services, hosts)
     hive_server2 = properties
     validationItems = []
     #Adding Ranger Plugin logic here

@@ -30,7 +30,7 @@ class ADH15StackAdvisor(ADH14StackAdvisor):
   def __init__(self):
     super(ADH15StackAdvisor, self).__init__()
     Logger.initialize_logger()
-    self.HIVE_INTERACTIVE_SITE = 'hive-interactive-site'
+    self.HIVE2_INTERACTIVE_SITE = 'hive-interactive-site'
     self.YARN_ROOT_DEFAULT_QUEUE_NAME = 'default'
     self.AMBARI_MANAGED_LLAP_QUEUE_NAME = 'llap'
     self.CONFIG_VALUE_UINITIALIZED = 'SET_ON_FIRST_INVOCATION'
@@ -96,11 +96,11 @@ class ADH15StackAdvisor(ADH14StackAdvisor):
     parentItems = super(ADH15StackAdvisor, self).getComponentLayoutValidations(services, hosts)
     childItems = []
 
-    hsi_hosts = self.getHostsForComponent(services, "HIVE", "HIVE_SERVER_INTERACTIVE")
+    hsi_hosts = self.getHostsForComponent(services, "HIVE2", "HIVE_SERVER_INTERACTIVE")
     if len(hsi_hosts) > 1:
-      message = "Only one host can install HIVE_SERVER_INTERACTIVE. "
+      message = "Only one host can install HIVE2_SERVER_INTERACTIVE. "
       childItems.append(
-        {"type": 'host-component', "level": 'ERROR', "message": message, "component-name": 'HIVE_SERVER_INTERACTIVE'})
+        {"type": 'host-component', "level": 'ERROR', "message": message, "component-name": 'HIVE2_SERVER_INTERACTIVE'})
 
     parentItems.extend(childItems)
     return parentItems
@@ -112,6 +112,9 @@ class ADH15StackAdvisor(ADH14StackAdvisor):
       "HIVE": {"hive-interactive-env": self.validateHiveInteractiveEnvConfigurations,
                "hive-interactive-site": self.validateHiveInteractiveSiteConfigurations,
                "hive-env": self.validateHiveConfigurationsEnv},
+      "HIVE2": {"hive-interactive-env": self.validateHive2InteractiveEnvConfigurations,
+               "hive-interactive-site": self.validateHive2InteractiveSiteConfigurations,
+               "hive-env": self.validateHive2ConfigurationsEnv},
       "YARN": {"yarn-site": self.validateYARNConfigurations},
       "RANGER": {"ranger-tagsync-site": self.validateRangerTagsyncConfigurations},
       "SPARK2": {"spark2-defaults": self.validateSpark2Defaults,
@@ -376,8 +379,125 @@ class ADH15StackAdvisor(ADH14StackAdvisor):
     validationProblems = self.toConfigurationValidationProblems(validationItems, "hive-interactive-site")
     return validationProblems
 
+  def validateHive2InteractiveSiteConfigurations(self, properties, recommendedDefaults, configurations, services, hosts):
+    """
+    Does the following validation checks for HIVE_SERVER_INTERACTIVE's hive-interactive-site configs.
+        1. Queue selected in 'hive.llap.daemon.queue.name' config should be sized >= to minimum required to run LLAP
+           and Hive2 app.
+        2. Queue selected in 'hive.llap.daemon.queue.name' config state should not be 'STOPPED'.
+        3. 'hive.server2.enable.doAs' config should be set to 'false' for Hive2.
+        4. 'Maximum Total Concurrent Queries'(hive.server2.tez.sessions.per.default.queue) should not consume more that 50% of selected queue for LLAP.
+        5. if 'llap' queue is selected, in order to run Service Checks, 'remaining available capacity' in cluster is atleast 512 MB.
+    """
+    validationItems = []
+    hsi_hosts = self.getHostsForComponent(services, "HIVE", "HIVE_SERVER_INTERACTIVE")
+    llap_queue_name = None
+    llap_queue_cap_perc = None
+    MIN_ASSUMED_CAP_REQUIRED_FOR_SERVICE_CHECKS = 512
+    llap_queue_cap = None
+    hsi_site = self.getServicesSiteProperties(services, self.HIVE_INTERACTIVE_SITE)
+
+    if len(hsi_hosts) == 0:
+      return []
+
+    # Get total cluster capacity
+    node_manager_host_list = self.getHostsForComponent(services, "YARN", "NODEMANAGER")
+    node_manager_cnt = len(node_manager_host_list)
+    yarn_nm_mem_in_mb = self.get_yarn_nm_mem_in_mb(services, configurations)
+    total_cluster_cap = node_manager_cnt * yarn_nm_mem_in_mb
+    capacity_scheduler_properties, received_as_key_value_pair = self.getCapacitySchedulerProperties(services)
+
+    if not capacity_scheduler_properties:
+      Logger.warning("Couldn't retrieve 'capacity-scheduler' properties while doing validation checks for Hive Server Interactive.")
+      return []
+
+    if hsi_site:
+      if "hive.llap.daemon.queue.name" in hsi_site and hsi_site['hive.llap.daemon.queue.name']:
+        llap_queue_name = hsi_site['hive.llap.daemon.queue.name']
+        llap_queue_cap = self.__getSelectedQueueTotalCap(capacity_scheduler_properties, llap_queue_name, total_cluster_cap)
+
+        if llap_queue_cap:
+          llap_queue_cap_perc = float(llap_queue_cap * 100 / total_cluster_cap)
+          min_reqd_queue_cap_perc = self.min_queue_perc_reqd_for_llap_and_hive_app(services, hosts, configurations)
+
+          # Validate that the selected queue in 'hive.llap.daemon.queue.name' should be sized >= to minimum required
+          # to run LLAP and Hive2 app.
+          if llap_queue_cap_perc < min_reqd_queue_cap_perc:
+            errMsg1 = "Selected queue '{0}' capacity ({1}%) is less than minimum required capacity ({2}%) for LLAP " \
+                      "app to run".format(llap_queue_name, llap_queue_cap_perc, min_reqd_queue_cap_perc)
+            validationItems.append({"config-name": "hive.llap.daemon.queue.name", "item": self.getErrorItem(errMsg1)})
+        else:
+          Logger.error("Couldn't retrieve '{0}' queue's capacity from 'capacity-scheduler' while doing validation checks for "
+           "Hive Server Interactive.".format(llap_queue_name))
+
+        # Validate that current selected queue in 'hive.llap.daemon.queue.name' state is not STOPPED.
+        llap_selected_queue_state = self.__getQueueStateFromCapacityScheduler(capacity_scheduler_properties, llap_queue_name)
+        if llap_selected_queue_state:
+          if llap_selected_queue_state == "STOPPED":
+            errMsg2 = "Selected queue '{0}' current state is : '{1}'. It is required to be in 'RUNNING' state for LLAP to run"\
+              .format(llap_queue_name, llap_selected_queue_state)
+            validationItems.append({"config-name": "hive.llap.daemon.queue.name","item": self.getErrorItem(errMsg2)})
+        else:
+          Logger.error("Couldn't retrieve '{0}' queue's state from 'capacity-scheduler' while doing validation checks for "
+                       "Hive Server Interactive.".format(llap_queue_name))
+      else:
+        Logger.error("Couldn't retrieve 'hive.llap.daemon.queue.name' config from 'hive-interactive-site' while doing "
+                     "validation checks for Hive Server Interactive.")
+
+      # Validate that 'hive.server2.enable.doAs' config is not set to 'true' for Hive2.
+      if 'hive.server2.enable.doAs' in hsi_site and hsi_site['hive.server2.enable.doAs'] == "true":
+          validationItems.append({"config-name": "hive.server2.enable.doAs", "item": self.getErrorItem("Value should be set to 'false' for Hive2.")})
+
+      # Validate that 'Maximum Total Concurrent Queries'(hive.server2.tez.sessions.per.default.queue) is not consuming more that
+      # 50% of selected queue for LLAP.
+      if llap_queue_cap and 'hive.server2.tez.sessions.per.default.queue' in hsi_site:
+        num_tez_sessions = hsi_site['hive.server2.tez.sessions.per.default.queue']
+        if num_tez_sessions:
+          num_tez_sessions = long(num_tez_sessions)
+          yarn_min_container_size = long(self.get_yarn_min_container_size(services, configurations))
+          tez_am_container_size = self.calculate_tez_am_container_size(services, long(total_cluster_cap))
+          normalized_tez_am_container_size = self._normalizeUp(tez_am_container_size, yarn_min_container_size)
+          llap_selected_queue_cap_remaining = llap_queue_cap - (normalized_tez_am_container_size * num_tez_sessions)
+          if llap_selected_queue_cap_remaining <= llap_queue_cap/2:
+            errMsg3 = " Reducing the 'Maximum Total Concurrent Queries' (value: {0}) is advisable as it is consuming more than 50% of " \
+                      "'{1}' queue for LLAP.".format(num_tez_sessions, llap_queue_name)
+            validationItems.append({"config-name": "hive.server2.tez.sessions.per.default.queue","item": self.getWarnItem(errMsg3)})
+
+    # Validate that 'remaining available capacity' in cluster is at least 512 MB, after 'llap' queue is selected,
+    # in order to run Service Checks.
+    if llap_queue_name and llap_queue_cap_perc and llap_queue_name == self.AMBARI_MANAGED_LLAP_QUEUE_NAME:
+      curr_selected_queue_for_llap_cap = float(llap_queue_cap_perc) / 100 * total_cluster_cap
+      available_cap_in_cluster = total_cluster_cap - curr_selected_queue_for_llap_cap
+      if available_cap_in_cluster < MIN_ASSUMED_CAP_REQUIRED_FOR_SERVICE_CHECKS:
+        errMsg4 = "Capacity used by '{0}' queue is '{1}'. Service checks may not run as remaining available capacity " \
+                   "({2}) in cluster is less than 512 MB.".format(self.AMBARI_MANAGED_LLAP_QUEUE_NAME, curr_selected_queue_for_llap_cap, available_cap_in_cluster)
+        validationItems.append({"config-name": "hive.llap.daemon.queue.name","item": self.getWarnItem(errMsg4)})
+
+    validationProblems = self.toConfigurationValidationProblems(validationItems, "hive-interactive-site")
+    return validationProblems
+
   def validateHiveConfigurationsEnv(self, properties, recommendedDefaults, configurations, services, hosts):
     parentValidationProblems = super(ADH15StackAdvisor, self).validateHiveConfigurationsEnv(properties, recommendedDefaults, configurations, services, hosts)
+    hive_site_properties = self.getSiteProperties(configurations, "hive-site")
+    hive_env_properties = self.getSiteProperties(configurations, "hive-env")
+    validationItems = []
+
+    if 'hive.server2.authentication' in hive_site_properties and "LDAP" == hive_site_properties['hive.server2.authentication']:
+      if 'alert_ldap_username' not in hive_env_properties or hive_env_properties['alert_ldap_username'] == "":
+        validationItems.append({"config-name": "alert_ldap_username",
+                                "item": self.getWarnItem(
+                                  "Provide an user to be used for alerts. Hive authentication type LDAP requires valid LDAP credentials for the alerts.")})
+      if 'alert_ldap_password' not in hive_env_properties or hive_env_properties['alert_ldap_password'] == "":
+        validationItems.append({"config-name": "alert_ldap_password",
+                                "item": self.getWarnItem(
+                                  "Provide the password for the alert user. Hive authentication type LDAP requires valid LDAP credentials for the alerts.")})
+
+    validationProblems = self.toConfigurationValidationProblems(validationItems, "hive-env")
+    validationProblems.extend(parentValidationProblems)
+    return validationProblems
+
+  def validateHive2ConfigurationsEnv(self, properties, recommendedDefaults, configurations, services, hosts):
+    parentValidationProblems = super(ADH15StackAdvisor, self).validateHive2ConfigurationsEnv(properties, recommendedDefaults, configurations, services, hosts)
     hive_site_properties = self.getSiteProperties(configurations, "hive-site")
     hive_env_properties = self.getSiteProperties(configurations, "hive-env")
     validationItems = []
@@ -432,12 +552,50 @@ class ADH15StackAdvisor(ADH14StackAdvisor):
     validationProblems = self.toConfigurationValidationProblems(validationItems, "hive-interactive-env")
     return validationProblems
 
+  def validateHive2InteractiveEnvConfigurations(self, properties, recommendedDefaults, configurations, services, hosts):
+    hive_site_env_properties = self.getSiteProperties(configurations, "hive-interactive-env")
+    yarn_site_properties = self.getSiteProperties(configurations, "yarn-site")
+    validationItems = []
+    hsi_hosts = self.getHostsForComponent(services, "HIVE", "HIVE_SERVER_INTERACTIVE")
+
+    # Check for expecting 'enable_hive_interactive' is ON given that there is HSI on atleast one host present.
+    if len(hsi_hosts) > 0:
+      # HIVE_SERVER_INTERACTIVE is mapped to a host
+      if 'enable_hive_interactive' not in hive_site_env_properties or (
+            'enable_hive_interactive' in hive_site_env_properties and
+            hive_site_env_properties['enable_hive_interactive'].lower() != 'true'):
+
+        validationItems.append({"config-name": "enable_hive_interactive",
+                                "item": self.getErrorItem(
+                                  "HIVE_SERVER_INTERACTIVE requires enable_hive_interactive in hive-interactive-env set to true.")})
+    else:
+      # no  HIVE_SERVER_INTERACTIVE
+      if 'enable_hive_interactive' in hive_site_env_properties and hive_site_env_properties[
+        'enable_hive_interactive'].lower() != 'false':
+        validationItems.append({"config-name": "enable_hive_interactive",
+                                "item": self.getErrorItem(
+                                  "enable_hive_interactive in hive-interactive-env should be set to false.")})
+
+    # Check for 'yarn.resourcemanager.scheduler.monitor.enable' config to be true if HSI is ON.
+    if yarn_site_properties and 'yarn.resourcemanager.scheduler.monitor.enable' in yarn_site_properties:
+      scheduler_monitor_enabled = yarn_site_properties['yarn.resourcemanager.scheduler.monitor.enable']
+      if scheduler_monitor_enabled.lower() == 'false' and hive_site_env_properties and 'enable_hive_interactive' in hive_site_env_properties and \
+        hive_site_env_properties['enable_hive_interactive'].lower() == 'true':
+        validationItems.append({"config-name": "enable_hive_interactive",
+                                "item": self.getWarnItem(
+                                  "When enabling LLAP, set 'yarn.resourcemanager.scheduler.monitor.enable' to true to ensure that LLAP gets the full allocated capacity.")})
+
+    validationProblems = self.toConfigurationValidationProblems(validationItems, "hive-interactive-env")
+    return validationProblems
+
+
   def getServiceConfigurationRecommenderDict(self):
     parentRecommendConfDict = super(ADH15StackAdvisor, self).getServiceConfigurationRecommenderDict()
     childRecommendConfDict = {
       "RANGER": self.recommendRangerConfigurations,
       "HBASE": self.recommendHBASEConfigurations,
       "HIVE": self.recommendHIVEConfigurations,
+      "HIVE2": self.recommendHIVE2Configurations,
       "ATLAS": self.recommendAtlasConfigurations,
       "RANGER_KMS": self.recommendRangerKMSConfigurations,
       "STORM": self.recommendStormConfigurations,
@@ -724,6 +882,43 @@ class ADH15StackAdvisor(ADH14StackAdvisor):
   def recommendHIVEConfigurations(self, configurations, clusterData, services, hosts):
     Logger.info("DBG: Invoked recommendHiveConfiguration")
     super(ADH15StackAdvisor, self).recommendHIVEConfigurations(configurations, clusterData, services, hosts)
+    putHiveInteractiveEnvProperty = self.putProperty(configurations, "hive-interactive-env", services)
+    putHiveInteractiveSiteProperty = self.putProperty(configurations, self.HIVE_INTERACTIVE_SITE, services)
+    putHiveInteractiveEnvPropertyAttribute = self.putPropertyAttribute(configurations, "hive-interactive-env")
+
+    # For 'Hive Server Interactive', if the component exists.
+    hsi_hosts = self.getHostsForComponent(services, "HIVE", "HIVE_SERVER_INTERACTIVE")
+    hsi_properties = self.getServicesSiteProperties(services, self.HIVE_INTERACTIVE_SITE)
+
+    if len(hsi_hosts) > 0:
+      putHiveInteractiveEnvProperty('enable_hive_interactive', 'true')
+
+      # Update 'hive.llap.daemon.queue.name' property attributes if capacity scheduler is changed.
+      if hsi_properties and 'hive.llap.daemon.queue.name' in hsi_properties:
+          self.setLlapDaemonQueuePropAttributes(services, configurations)
+
+          hsi_conf_properties = self.getSiteProperties(configurations, self.HIVE_INTERACTIVE_SITE)
+
+          hive_tez_default_queue = hsi_properties["hive.llap.daemon.queue.name"]
+          if hsi_conf_properties and "hive.llap.daemon.queue.name" in hsi_conf_properties:
+            hive_tez_default_queue = hsi_conf_properties['hive.llap.daemon.queue.name']
+
+          if hive_tez_default_queue:
+            putHiveInteractiveSiteProperty("hive.server2.tez.default.queues", hive_tez_default_queue)
+            Logger.debug("Updated 'hive.server2.tez.default.queues' config : '{0}'".format(hive_tez_default_queue))
+    else:
+      Logger.info("DBG: Setting 'num_llap_nodes' config's  READ ONLY attribute as 'True'.")
+      putHiveInteractiveEnvProperty('enable_hive_interactive', 'false')
+      putHiveInteractiveEnvPropertyAttribute("num_llap_nodes", "read_only", "true")
+
+    if hsi_properties and "hive.llap.zk.sm.connectionString" in hsi_properties:
+      zookeeper_host_port = self.getZKHostPortString(services)
+      if zookeeper_host_port:
+        putHiveInteractiveSiteProperty("hive.llap.zk.sm.connectionString", zookeeper_host_port)
+
+  def recommendHIVE2Configurations(self, configurations, clusterData, services, hosts):
+    Logger.info("DBG: Invoked recommendHiveConfiguration")
+    super(ADH15StackAdvisor, self).recommendHIVE2Configurations(configurations, clusterData, services, hosts)
     putHiveInteractiveEnvProperty = self.putProperty(configurations, "hive-interactive-env", services)
     putHiveInteractiveSiteProperty = self.putProperty(configurations, self.HIVE_INTERACTIVE_SITE, services)
     putHiveInteractiveEnvPropertyAttribute = self.putPropertyAttribute(configurations, "hive-interactive-env")

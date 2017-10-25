@@ -392,6 +392,41 @@ class ADH10StackAdvisor(DefaultStackAdvisor):
           if not webhcat_user in users and webhcat_user is not None:
             users[webhcat_user] = {"propertyHosts" : webHcatServerHostsNames,"propertyGroups" : "*", "config" : "hive-env", "propertyName" : "webhcat_user"}
 
+    if "HIVE2" in servicesList:
+      webhcat_user = None
+      if "hive-env" in services["configurations"] and "hive_user" in services["configurations"]["hive-env"]["properties"] \
+              and "webhcat_user" in services["configurations"]["hive-env"]["properties"]:
+        hive_user = services["configurations"]["hive-env"]["properties"]["hive_user"]
+        webhcat_user = services["configurations"]["hive-env"]["properties"]["webhcat_user"]
+        webHcatServerHosts = self.getHostsWithComponent("HIVE2", "WEBHCAT_SERVER", services, hosts)
+        hiveServerHosts = self.getHostsWithComponent("HIVE2", "HIVE2_SERVER", services, hosts)
+        hiveServerInteractiveHosts = self.getHostsWithComponent("HIVE2", "HIVE2_SERVER_INTERACTIVE", services, hosts)
+
+        if hiveServerHosts is not None:
+          hiveServerHostsNameSet = set()
+          for hiveServerHost in hiveServerHosts:
+            hiveServerHostsNameSet.add(hiveServerHost["Hosts"]["host_name"])
+          # Append Hive Server Interactive host as well, as it is Hive2/HiveServer2 component.
+          if hiveServerInteractiveHosts:
+            for hiveServerInteractiveHost in hiveServerInteractiveHosts:
+              hiveServerInteractiveHostName = hiveServerInteractiveHost["Hosts"]["host_name"]
+              if hiveServerInteractiveHostName not in hiveServerHostsNameSet:
+                hiveServerHostsNameSet.add(hiveServerInteractiveHostName)
+                Logger.info("Appended (if not exiting), Hive Server Interactive Host : '{0}', to Hive Server Host List : '{1}'".format(hiveServerInteractiveHostName, hiveServerHostsNameSet))
+
+          hiveServerHostsNames = ",".join(sorted(hiveServerHostsNameSet))  # includes Hive Server interactive host also.
+          Logger.info("Hive Server and Hive Server Interactive (if enabled) Host List : {0}".format(hiveServerHostsNameSet))
+          if not hive_user in users and hive_user is not None:
+            users[hive_user] = {"propertyHosts" : hiveServerHostsNames,"propertyGroups" : "*", "config" : "hive-env", "propertyName" : "hive_user"}
+
+        if webHcatServerHosts is not None:
+          webHcatServerHostsNameSet = set()
+          for webHcatServerHost in webHcatServerHosts:
+            webHcatServerHostsNameSet.add(webHcatServerHost["Hosts"]["host_name"])
+          webHcatServerHostsNames = ",".join(sorted(webHcatServerHostsNameSet))
+          if not webhcat_user in users and webhcat_user is not None:
+            users[webhcat_user] = {"propertyHosts" : webHcatServerHostsNames,"propertyGroups" : "*", "config" : "hive-env", "propertyName" : "webhcat_user"}
+
     if "YARN" in servicesList:
       yarn_user = None
       if "yarn-env" in services["configurations"] and "yarn_user" in services["configurations"]["yarn-env"]["properties"]:
@@ -649,6 +684,7 @@ class ADH10StackAdvisor(DefaultStackAdvisor):
         {'service_name': 'HDFS', 'audit_file': 'ranger-hdfs-plugin-properties'},
         {'service_name': 'HBASE', 'audit_file': 'ranger-hbase-plugin-properties'},
         {'service_name': 'HIVE', 'audit_file': 'ranger-hive-plugin-properties'},
+        {'service_name': 'HIVE2', 'audit_file': 'ranger-hive-plugin-properties'},
         {'service_name': 'KNOX', 'audit_file': 'ranger-knox-plugin-properties'},
         {'service_name': 'STORM', 'audit_file': 'ranger-storm-plugin-properties'}
       ]
@@ -1877,6 +1913,8 @@ class ADH10StackAdvisor(DefaultStackAdvisor):
       'HIVE_SERVER': {6: 1, 31: 2, "else": 4},
       'HIVE_METASTORE': {6: 1, 31: 2, "else": 4},
       'WEBHCAT_SERVER': {6: 1, 31: 2, "else": 4},
+      'HIVE2_SERVER': {6: 1, 31: 2, "else": 4},
+      'HIVE2_METASTORE': {6: 1, 31: 2, "else": 4},
       'METRICS_COLLECTOR': {3: 2, 6: 2, 31: 3, "else": 5},
     }
 
@@ -2254,6 +2292,15 @@ def getHeapsizeProperties():
                             "property": "hive.metastore.heapsize",
                             "default": "1024"}],
            "HIVE_SERVER": [{"config-name": "hive-env",
+                               "property": "hive.heapsize",
+                               "default": "1024"}],
+           "HIVE2_CLIENT": [{"config-name": "hive-env",
+                            "property": "hive.client.heapsize",
+                            "default": "1024"}],
+           "HIVE2_METASTORE": [{"config-name": "hive-env",
+                            "property": "hive.metastore.heapsize",
+                            "default": "1024"}],
+           "HIVE2_SERVER": [{"config-name": "hive-env",
                                "property": "hive.heapsize",
                                "default": "1024"}],
            "HISTORYSERVER": [{"config-name": "mapred-env",
