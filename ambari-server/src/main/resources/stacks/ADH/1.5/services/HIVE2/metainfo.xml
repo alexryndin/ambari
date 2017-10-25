@@ -19,14 +19,17 @@
   <schemaVersion>2.0</schemaVersion>
   <services>
     <service>
-      <name>HIVE</name>
+      <name>HIVE2</name>
       <version>2.3.0.1.5</version>
+      <displayName>Hive 2</displayName>
+      <comment>Data warehouse system for ad-hoc queries &amp; analysis of large datasets and table &amp; storage management service</comment>
+
 
       <components>
 
         <component>
-            <name>HIVE_METASTORE</name>
-            <displayName>Hive Metastore</displayName>
+            <name>HIVE2_METASTORE</name>
+            <displayName>Hive 2 Metastore</displayName>
             <category>MASTER</category>
             <cardinality>1+</cardinality>
             <clientsToUpdateConfigs></clientsToUpdateConfigs>
@@ -34,7 +37,7 @@
             <clientsToUpdateConfigs></clientsToUpdateConfigs>
             <auto-deploy>
                 <enabled>true</enabled>
-                <co-locate>HIVE/HIVE_SERVER</co-locate>
+                <co-locate>HIVE2/HIVE2_SERVER</co-locate>
             </auto-deploy>
             <commandScript>
                 <script>scripts/hive_metastore.py</script>
@@ -47,8 +50,8 @@
         </component>
 
         <component>
-          <name>HIVE_SERVER</name>
-          <displayName>HiveServer2</displayName>
+          <name>HIVE2_SERVER</name>
+          <displayName>Hive2Server2</displayName>
           <category>MASTER</category>
           <cardinality>1+</cardinality>
           <versionAdvertised>true</versionAdvertised>
@@ -66,7 +69,7 @@
               <scope>cluster</scope>
               <auto-deploy>
                 <enabled>true</enabled>
-                <co-locate>HIVE/HIVE_SERVER</co-locate>
+                <co-locate>HIVE2/HIVE2_SERVER</co-locate>
               </auto-deploy>
             </dependency>
             <dependency>
@@ -112,7 +115,7 @@
               </auto-deploy>
             </dependency>
             <dependency>
-              <name>HIVE/HIVE_CLIENT</name>
+              <name>HIVE2/HIVE2_CLIENT</name>
               <scope>host</scope>
               <auto-deploy>
                 <enabled>true</enabled>
@@ -189,7 +192,7 @@
         </component>
 
         <component>
-          <name>HIVE_CLIENT</name>
+          <name>HIVE2_CLIENT</name>
           <displayName>Hive Client</displayName>
           <category>CLIENT</category>
           <cardinality>1+</cardinality>
