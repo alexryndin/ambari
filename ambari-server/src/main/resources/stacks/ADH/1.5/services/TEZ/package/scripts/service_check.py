@@ -23,7 +23,8 @@ from resource_management.libraries.script import Script
 from resource_management.libraries.resources.hdfs_resource import HdfsResource
 from resource_management.libraries.resources.execute_hadoop import ExecuteHadoop
 from resource_management.libraries.functions import format
-from resource_management.libraries.functions.version import compare_versions
+from resource_management.libraries.functions import StackFeature
+from resource_management.libraries.functions.stack_features import check_stack_feature
 from resource_management.libraries.functions.copy_tarball import copy_to_hdfs
 from resource_management.core.resources.system import File, Execute
 
@@ -67,7 +68,7 @@ class TezServiceCheckLinux(TezServiceCheck):
       source = format("{tmp_dir}/sample-tez-test"),
     )
 
-    copy_to_hdfs("tez", params.user_group, params.hdfs_user, skip=params.host_sys_prepped)
+    copy_to_hdfs("tez", params.user_group, params.hdfs_user, skip=params.sysprep_skip_copy_tarballs_hdfs)
 
     params.HdfsResource(None, action = "execute")
 
@@ -99,11 +100,12 @@ class TezServiceCheckWindows(TezServiceCheck):
   def service_check(self, env):
     import params
     env.set_params(params)
-    smoke_cmd = os.path.join(params.hdp_root,"Run-SmokeTests.cmd")
+    smoke_cmd = os.path.join(params.stack_root,"Run-SmokeTests.cmd")
     service = "TEZ"
     Execute(format("cmd /C {smoke_cmd} {service}"), logoutput=True, user=params.tez_user)
 
 
 if __name__ == "__main__":
   TezServiceCheck().execute()
+
 

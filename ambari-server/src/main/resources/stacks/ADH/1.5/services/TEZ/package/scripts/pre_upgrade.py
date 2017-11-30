@@ -20,7 +20,8 @@ Ambari Agent
 """
 
 from resource_management.libraries.script import Script
-from resource_management.libraries.functions.version import compare_versions
+from resource_management.libraries.functions import StackFeature
+from resource_management.libraries.functions.stack_features import check_stack_feature
 from resource_management.libraries.functions.copy_tarball import copy_to_hdfs
 from resource_management.core.exceptions import Fail
 
@@ -36,7 +37,24 @@ class TezPreUpgrade(Script):
     import params
     env.set_params(params)
 
+    Logger.info("Before starting Stack Upgrade, check if tez tarball has been copied to HDFS.")
+
+    if params.stack_version_formatted and check_stack_feature(StackFeature.ROLLING_UPGRADE, params.stack_version_formatted):
+      Logger.info("Stack version {0} is sufficient to check if need to copy tez.tar.gz to HDFS.".format(params.stack_version_formatted))
+
+      # Force it to copy the current version of the tez tarball, rather than the version the RU will go to.
+      resource_created = copy_to_hdfs(
+        "tez",
+        params.user_group,
+        params.hdfs_user,
+        use_upgrading_version_during_upgrade=False,
+        skip=params.sysprep_skip_copy_tarballs_hdfs)
+      if resource_created:
+        params.HdfsResource(None, action="execute")
+      else:
+        raise Fail("Could not copy tez tarball to HDFS.")
 
 if __name__ == "__main__":
   TezPreUpgrade().execute()
+
 
