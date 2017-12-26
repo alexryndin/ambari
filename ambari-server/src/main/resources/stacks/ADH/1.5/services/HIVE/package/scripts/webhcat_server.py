@@ -20,6 +20,9 @@ Ambari Agent
 """
 from resource_management import *
 from resource_management.libraries.functions import conf_select
+from resource_management.libraries.functions import stack_select
+from resource_management.libraries.functions import StackFeature
+from resource_management.libraries.functions.stack_features import check_stack_feature
 from resource_management.libraries.functions.security_commons import build_expectations, \
   cached_kinit_executor, get_params_from_filesystem, validate_security_config_properties, \
   FILE_TYPE_XML
@@ -61,8 +64,8 @@ class WebHCatServerWindows(WebHCatServer):
 
 @OsFamilyImpl(os_family=OsFamilyImpl.DEFAULT)
 class WebHCatServerDefault(WebHCatServer):
-  def get_stack_to_component(self):
-    return {"HDP": "hive-webhcat"}
+  def get_component_name(self):
+    return "hive-webhcat"
 
   def status(self, env):
     import status_params
@@ -74,10 +77,17 @@ class WebHCatServerDefault(WebHCatServer):
     import params
     env.set_params(params)
 
+    if params.version and check_stack_feature(StackFeature.ROLLING_UPGRADE, params.version): 
+      # webhcat has no conf, but uses hadoop home, so verify that regular hadoop conf is set
+      conf_select.select(params.stack_name, "hive-hcatalog", params.version)
+      conf_select.select(params.stack_name, "hadoop", params.version)
+      stack_select.select("hive-webhcat", params.version)
+
   def security_status(self, env):
     import status_params
     env.set_params(status_params)
-
+    from ra import ra
+    ra.log('security='+str(status_params.security_enabled))
     if status_params.security_enabled:
       expectations ={}
       expectations.update(
@@ -109,8 +119,6 @@ class WebHCatServerDefault(WebHCatServer):
       )
 
       security_params = {}
-      security_params.update(get_params_from_filesystem(status_params.hive_conf_dir,
-                                                        {'hive-site.xml': FILE_TYPE_XML}))
       security_params.update(get_params_from_filesystem(status_params.webhcat_conf_dir,
                                                         {'webhcat-site.xml': FILE_TYPE_XML}))
       result_issues = validate_security_config_properties(security_params, expectations)
@@ -143,6 +151,14 @@ class WebHCatServerDefault(WebHCatServer):
     else:
       self.put_structured_out({"securityState": "UNSECURED"})
 
+  def get_log_folder(self):
+    import params
+    return params.hcat_log_dir
+  
+  def get_user(self):
+    import params
+    return params.webhcat_user
 
 if __name__ == "__main__":
   WebHCatServer().execute()
+

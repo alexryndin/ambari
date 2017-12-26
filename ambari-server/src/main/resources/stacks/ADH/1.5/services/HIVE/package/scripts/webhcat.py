@@ -22,7 +22,8 @@ import sys
 import os.path
 from resource_management import *
 from resource_management.core.resources.system import Execute
-from resource_management.libraries.functions.version import compare_versions
+from resource_management.libraries.functions import StackFeature
+from resource_management.libraries.functions.stack_features import check_stack_feature
 from ambari_commons.os_family_impl import OsFamilyFuncImpl, OsFamilyImpl
 from resource_management.libraries.functions.setup_atlas_hook import has_atlas_in_cluster, setup_atlas_hook
 from ambari_commons import OSConst
@@ -51,30 +52,20 @@ def webhcat():
             owner=params.webhcat_user,
             mode=0755,
             group=params.user_group,
-            create_parents=True)
+            create_parents = True)
 
   Directory(params.templeton_log_dir,
             owner=params.webhcat_user,
             mode=0755,
             group=params.user_group,
-            create_parents=True)
+            create_parents = True)
 
   Directory(params.config_dir,
-            create_parents=True,
+            create_parents = True,
             owner=params.webhcat_user,
             group=params.user_group,
             cd_access="a")
 
-  if params.security_enabled:
-    kinit_if_needed = format("{kinit_path_local} -kt {hdfs_user_keytab} {hdfs_principal_name};")
-  else:
-    kinit_if_needed = ""
-
-  if kinit_if_needed:
-    Execute(kinit_if_needed,
-            user=params.webhcat_user,
-            path='/bin'
-    )
 
   # Replace _HOST with hostname in relevant principal-related properties
   webhcat_site = params.config['configurations']['webhcat-site'].copy()
@@ -90,6 +81,24 @@ def webhcat():
             group=params.user_group,
             )
 
+  # if we're in an upgrade of a secure cluster, make sure hive-site and yarn-site are created
+  XmlConfig("hive-site.xml",
+      conf_dir = format("/etc/hive/conf"),
+      configurations = params.config['configurations']['hive-site'],
+      configuration_attributes = params.config['configuration_attributes']['hive-site'],
+      owner = params.hive_user,
+      group = params.user_group,
+      )
+
+  XmlConfig("yarn-site.xml",
+      conf_dir = format("/etc/hadoop/conf"),
+      configurations = params.config['configurations']['yarn-site'],
+      configuration_attributes = params.config['configuration_attributes']['yarn-site'],
+      owner = params.yarn_user,
+      group = params.user_group,    
+  )
+  
+
   File(format("{config_dir}/webhcat-env.sh"),
        owner=params.webhcat_user,
        group=params.user_group,
@@ -98,7 +107,7 @@ def webhcat():
   
   Directory(params.webhcat_conf_dir,
        cd_access='a',
-       create_parents=True
+       create_parents = True
   )
 
   log4j_webhcat_filename = 'webhcat-log4j.properties'
@@ -107,7 +116,7 @@ def webhcat():
          mode=0644,
          group=params.user_group,
          owner=params.webhcat_user,
-         content=params.log4j_webhcat_props
+         content=InlineTemplate(params.log4j_webhcat_props)
     )
   elif (os.path.exists("{config_dir}/{log4j_webhcat_filename}.template")):
     File(format("{config_dir}/{log4j_webhcat_filename}"),
@@ -122,4 +131,3 @@ def webhcat():
     # WebHCat uses a different config dir than the rest of the daemons in Hive.
     atlas_hook_filepath = os.path.join(params.config_dir, params.atlas_hook_filename)
     setup_atlas_hook(SERVICE.HIVE, params.hive_atlas_application_properties, atlas_hook_filepath, params.hive_user, params.user_group)
-
