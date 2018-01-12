@@ -86,8 +86,6 @@ class WebHCatServerDefault(WebHCatServer):
   def security_status(self, env):
     import status_params
     env.set_params(status_params)
-    from ra import ra
-    ra.log('security='+str(status_params.security_enabled))
     if status_params.security_enabled:
       expectations ={}
       expectations.update(
