@@ -228,14 +228,6 @@ public class CheckDescription {
       .put(AbstractCheckDescriptor.DEFAULT,
           "The following config types will have values overwritten: %s").build());
 
-  public static CheckDescription HARDCODED_STACK_VERSION_PROPERTIES_CHECK = new CheckDescription("HARDCODED_STACK_VERSION_PROPERTIES_CHECK",
-    PrereqCheckType.CLUSTER,
-    "Found hardcoded stack version in property value.",
-    new ImmutableMap.Builder<String, String>()
-      .put(AbstractCheckDescriptor.DEFAULT,
-          "Some properties seem to contain hardcoded stack version string \"%s\"." +
-          " That is a potential problem when doing stack update.").build());
-
   public static CheckDescription VERSION_MISMATCH = new CheckDescription("VERSION_MISMATCH",
     PrereqCheckType.HOST,
     "All components must be reporting the expected version",
