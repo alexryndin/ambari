@@ -50,7 +50,6 @@
         <input type="text" class="form-control" ng-change="resetPagination()" ng-model="filter.version" placeholder="{{'common.any' | translate}}">
         <button type="button" class="close clearfilter" ng-show="filter.version" ng-click="filter.version=''; resetPagination()"><span aria-hidden="true">&times;</span><span class="sr-only">{{'common.controls.close' | translate}}</span></button>
       </th>
-      <!--
       <th class="col-small">
         <label>{{'common.cluster' | translate}}</label>
         <select class="form-control"
@@ -59,7 +58,6 @@
                 ng-options="item.label for item in filter.cluster.options track by item.value"
           ></select>
       </th>
-    -->
       <th class="col-small"></th>
     </tr>
     </thead>
@@ -78,11 +76,9 @@
         <a href="{{fromSiteRoot('/#/main/admin/stack/versions')}}" ng-show="repo.cluster">
           {{repo.cluster}}
         </a>
-        <!--
         <span ng-show="!repo.cluster">
           {{'common.none' | translate}}
         </span>
-      -->
       </td>
       <td class="verison-label-row">
         <div ng-show="repo.status == 'current'">
@@ -92,7 +88,7 @@
           <span class="label {{'status-' + repo.status}}">{{'versions.installed' | translate}}:&nbsp;{{repo.installedHosts}}/{{repo.totalHosts}}</span>
         </div>
         <div ng-show="!repo.cluster">
-      <!--    <div class="btn-group display-inline-block" dropdown is-open="viewsdropdown.isopen" ng-mouseover="viewsdropdown.isopen=true" ng-mouseout="viewsdropdown.isopen=false" ng-init="viewsdropdown.isopen=false">
+          <div class="btn-group display-inline-block" dropdown is-open="viewsdropdown.isopen" ng-mouseover="viewsdropdown.isopen=true" ng-mouseout="viewsdropdown.isopen=false" ng-init="viewsdropdown.isopen=false">
             <a class="btn dropdown-toggle">
               <span>{{'versions.installOn' | translate}}</span>
             </a>
@@ -104,7 +100,6 @@
               </li>
             </ul>
           </div>
-       -->
         </div>
       </td>
     </tr>
