@@ -109,7 +109,6 @@ describe('App.ReassignMasterWizardStep1Controller', function () {
       controller.set('_super', Em.K);
 
       sinon.stub(controller, 'getDatabaseHost', Em.K);
-      sinon.stub(controller, 'isExistingDb', Em.K);
       sinon.stub(controller, 'saveDatabaseType', Em.K);
       sinon.stub(controller, 'saveServiceProperties', Em.K);
       sinon.stub(controller, 'saveConfigs', Em.K);
@@ -120,7 +119,6 @@ describe('App.ReassignMasterWizardStep1Controller', function () {
 
     afterEach(function() {
       controller.getDatabaseHost.restore();
-      controller.isExistingDb.restore();
       controller.saveDatabaseType.restore();
       controller.saveServiceProperties.restore();
       controller.saveConfigs.restore();

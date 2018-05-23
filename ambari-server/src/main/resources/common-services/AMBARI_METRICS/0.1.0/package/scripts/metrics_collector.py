@@ -45,7 +45,6 @@ class AmsCollector(Script):
     ams(name='collector')
 
   def start(self, env):
-    self.clear_hbase_tmp_dir()
     self.configure(env, action = 'start') # for security
     # stop hanging components before start
     ams_service('collector', action = 'stop')
@@ -62,11 +61,6 @@ class AmsCollector(Script):
     import status_params
     env.set_params(status_params)
     check_service_status(name='collector')
-
-  def clear_hbase_tmp_dir(self):
-    import params
-    Directory(params.hbase_tmp_dir, action = "delete")
-    Directory(params.hbase_tmp_dir, create_parents = True)
     
   def get_log_folder(self):
     import params

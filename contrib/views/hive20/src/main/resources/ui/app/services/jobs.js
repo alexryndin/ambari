@@ -20,7 +20,6 @@ import Ember from 'ember';
 
 export default Ember.Service.extend({
   store: Ember.inject.service(),
-  isCurrentQueryCancelled: false,
   getQuery(jobId) {
     let job = this.get('store').peekRecord('job', jobId);
     if (job) {
@@ -32,11 +31,6 @@ export default Ember.Service.extend({
 
     return new Ember.RSVP.Promise((resolve, reject) => {
       Ember.run.later(() => {
-        if(this.get('isCurrentQueryCancelled')) {
-         this.resetCurrentQueryStatus();
-         reject('error');
-         return;
-        }
         this.get('store').findRecord('job', jobId, {reload: true})
           .then((job) => {
             let status = job.get('status').toLowerCase();
@@ -70,29 +64,10 @@ export default Ember.Service.extend({
   },
 
   stopJob : function(jobId) {
-    this.setCurrentQueryAsCancelled();
-    return new Ember.RSVP.Promise((resolve, reject) => {
-      let job = this.get('store').peekRecord('job', jobId);
-      if(job) {
-       job.destroyRecord();
-      }
-       else {
-        this.get('store').findRecord('job', jobId, { reload: true })
-          .then(job => {
-           job.deleteRecord();
-           return resolve("");
-         }).catch(function (response) {
-           return resolve("");
-         });
-      }
-    });
+    return this.get('store').findRecord('job', jobId)
+      .then(job => job.destroyRecord());
   },
-  setCurrentQueryAsCancelled() {
-    this.set('isCurrentQueryCancelled', true);
-  },
-  resetCurrentQueryStatus() {
-    this.set('isCurrentQueryCancelled', false);
-  },
+
   _fetchDummyResult(jobId) {
     this.get('store').adapterFor('job').fetchResult(jobId);
   },

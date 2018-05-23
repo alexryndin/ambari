@@ -47,13 +47,14 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <clover.license>${user.home}/clover.license</clover.license>
     <buildnumber-maven-plugin-version>1.2</buildnumber-maven-plugin-version>
-    <deb.publisher>Hortonworks</deb.publisher>
+    <deb.publisher>Arenadata</deb.publisher>
     <deb.section>universe/admin</deb.section>
     <deb.architecture>i386 amd64</deb.architecture>
     <deb.priority>extra</deb.priority>
     <stack.distribution>ADH</stack.distribution>
 
-    <supplemental.distribution>ADH</supplemental.distribution>
+    <!-- Default supplement distribution is BigInsights for Ambari 2.5.2 and higher. -->
+    <supplemental.distribution>BigInsights</supplemental.distribution>
 
     <ambari.dir>${project.basedir}</ambari.dir>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -66,6 +67,17 @@
     <assemblyPhase>package</assemblyPhase> <!-- use -DassemblyPhase=none to skip building tarball, useful when you want purely compile jar -->
   </properties>
   <pluginRepositories>
+    <pluginRepository>
+      <id>maven2-repository.dev.java.net</id>
+      <name>Java.net Repository for Maven</name>
+      <url>http://download.java.net/maven/2/</url>
+      <layout>default</layout>
+    </pluginRepository>
+    <pluginRepository>
+      <id>maven2-glassfish-repository.dev.java.net</id>
+      <name>Java.net Repository for Maven</name>
+      <url>http://download.java.net/maven/glassfish/</url>
+    </pluginRepository>
     <pluginRepository>
       <id>maven2-repository.atlassian</id>
       <name>Atlassian Maven Repository</name>

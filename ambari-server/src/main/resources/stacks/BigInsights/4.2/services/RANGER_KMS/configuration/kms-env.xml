@@ -27,10 +27,6 @@
     <on-ambari-upgrade add="true"/>
     <property-type>USER</property-type>
     <description>Kms username</description>
-    <value-attributes>
-      <type>user</type>
-      <overridable>false</overridable>
-    </value-attributes>
   </property>
 
   <property>
@@ -40,10 +36,6 @@
     <on-ambari-upgrade add="true"/>
     <property-type>GROUP</property-type>
     <description>Kms group</description>
-    <value-attributes>
-      <type>user</type>
-      <overridable>false</overridable>
-    </value-attributes>
   </property>
 
   <property>

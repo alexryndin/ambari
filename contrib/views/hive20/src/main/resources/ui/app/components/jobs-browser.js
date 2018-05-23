@@ -93,9 +93,6 @@ export default Ember.Component.extend({
 
     clearTitleFilter() {
       this.set('titleFilter');
-    },
-    openWorksheet(worksheet, isExisitingWorksheet){
-      this.sendAction("openWorksheet", worksheet, isExisitingWorksheet);
     }
   }
 });

@@ -40,7 +40,6 @@
     <property-type>GROUP</property-type>
     <description>Ranger group</description>
     <value-attributes>
-      <type>user</type>
       <overridable>false</overridable>
     </value-attributes>
   </property>

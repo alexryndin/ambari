@@ -1092,14 +1092,12 @@ App.BulkOperationsController = Em.Controller.extend({
   _getSkippedForPassiveStateHosts: function (hosts) {
     var hostNames = hosts.mapProperty('hostName');
     var hostNamesSkipped = [];
-    /**
     var outOfSyncHosts = App.StackVersion.find().findProperty('isCurrent').get('outOfSyncHosts');
     for (var i = 0; i < outOfSyncHosts.length; i++) {
       if (hostNames.contains(outOfSyncHosts[i])) {
         hostNamesSkipped.push(outOfSyncHosts[i]);
       }
     }
-    */
     return hostNamesSkipped;
   }
 

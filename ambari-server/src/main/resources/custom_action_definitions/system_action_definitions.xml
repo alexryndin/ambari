@@ -104,15 +104,4 @@
     <description>Remove packages specified by package_list, instructing the package manager to ignore dependencies.</description>
     <targetType>ALL</targetType>
   </actionDefinition>
-  <actionDefinition>
-   <actionName>clean_host</actionName>
-   <actionType>SYSTEM</actionType>
-   <inputs/>
-   <targetService/>
-   <targetComponent/>
-   <defaultTimeout>60</defaultTimeout>
-   <description>Distribute repositories and install packages</description>
-   <targetType>ALL</targetType>
-   <permissions>HOST.ADD_DELETE_COMPONENTS, HOST.ADD_DELETE_HOSTS, SERVICE.ADD_DELETE_SERVICES</permissions>
- </actionDefinition>
 </actionDefinitions>

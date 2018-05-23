@@ -200,7 +200,6 @@ export default Ember.Object.create({
     version: '2.0.0',
     instance: 'Hive',
     apiPrefix: '/api/v1/views/HIVE/versions/',
-    assetPrefix: '/views/HIVE/',
     instancePrefix: '/instances/',
     resourcePrefix: 'resources/'
   },

@@ -88,11 +88,7 @@
         <on-ambari-upgrade add="true"/>
         <property-type>USER</property-type>
         <description>User executing service checks</description>
-        <value-attributes>
-            <type>user</type>
-            <overridable>false</overridable>
-        </value-attributes>
-      </property>
+    </property>
     <property>
         <name>smokeuser_keytab</name>
         <value>/etc/security/keytabs/smokeuser.headless.keytab</value>

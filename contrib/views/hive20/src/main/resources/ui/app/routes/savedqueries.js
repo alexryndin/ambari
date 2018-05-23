@@ -52,10 +52,12 @@ export default Ember.Route.extend(UILoggerMixin, {
       let self = this;
 
       console.log('deleteSavedQuery', queryId);
-      let recordToDelete = this.get('store').peekRecord('saved-query', queryId);
-      recordToDelete.destroyRecord().then(function (data) {
-        self.send('deleteSavedQueryDeclined');
-        self.send('refreshSavedQueryList');
+
+      this.get('store').queryRecord('saved-query', { filter: { id: queryId } }, {reload: true}).then(function(record) {
+        record.destroyRecord().then(function(data) {
+          self.send('deleteSavedQueryDeclined');
+          self.send('refreshSavedQueryList');
+        });
       }, (error) => {
         console.log('error', error);
       });

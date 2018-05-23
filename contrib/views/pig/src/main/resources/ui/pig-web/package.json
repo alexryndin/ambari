@@ -5,7 +5,7 @@
     "node": "~0.6.10 || 0.8 || 0.9"
   },
   "scripts": {
-    "test": "/bin/true",
+    "test": "node_modules/phantomjs/bin/phantomjs runner.js public/tests.html",
     "start": "brunch watch --server"
   },
   "dependencies": {
@@ -19,6 +19,9 @@
     "scaffolt": "^0.4.3"
   },
   "devDependencies": {
-    "karma": "*"
+    "phantomjs": "^1.9.2",
+    "karma": "*",
+    "karma-qunit": "*",
+    "karma-phantomjs-launcher": "~0.1.2"
   }
 }

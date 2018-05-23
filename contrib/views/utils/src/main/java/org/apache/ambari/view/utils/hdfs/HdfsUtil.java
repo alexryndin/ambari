@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
 public class HdfsUtil {
@@ -39,19 +38,13 @@ public class HdfsUtil {
    * @param filePath path to file
    * @param content new content of file
    */
-  public static void putStringToFile(final HdfsApi hdfs,final String filePath, final String content) throws HdfsApiException {
-
+  public static void putStringToFile(HdfsApi hdfs, String filePath, String content) throws HdfsApiException {
+    FSDataOutputStream stream;
     try {
       synchronized (hdfs) {
-        hdfs.execute(new PrivilegedExceptionAction<Void>() {
-          @Override
-          public Void run() throws Exception {
-            final FSDataOutputStream stream = hdfs.create(filePath, true);
-            stream.write(content.getBytes());
-            stream.close();
-            return null;
-          }
-        }, true);
+        stream = hdfs.create(filePath, true);
+        stream.write(content.getBytes());
+        stream.close();
       }
     } catch (IOException e) {
       throw new HdfsApiException("HDFS020 Could not write file " + filePath, e);
