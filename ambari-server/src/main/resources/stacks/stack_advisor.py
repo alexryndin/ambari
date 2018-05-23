@@ -22,22 +22,21 @@ import os
 import re
 import socket
 import traceback
-import json
 
 class StackAdvisor(object):
   """
-  Abstract class implemented by all stack advisors. Stack advisors advise on stack specific questions.
+  Abstract class implemented by all stack advisors. Stack advisors advise on stack specific questions. 
 
   Currently stack advisors provide following abilities:
   - Recommend where services should be installed in cluster
   - Recommend configurations based on host hardware
   - Validate user selection of where services are installed on cluster
-  - Validate user configuration values
+  - Validate user configuration values 
 
   Each of the above methods is passed in parameters about services and hosts involved as described below.
 
     @type services: dictionary
-    @param services: Dictionary containing all information about services selected by the user.
+    @param services: Dictionary containing all information about services selected by the user. 
       Example: {
       "services": [
         {
@@ -45,7 +44,7 @@ class StackAdvisor(object):
             "service_name" : "HDFS",
             "service_version" : "2.6.0.2.2",
           },
-          "components" : [
+          "components" : [ 
             {
               "StackServiceComponents" : {
                 "cardinality" : "1+",
@@ -113,7 +112,7 @@ class StackAdvisor(object):
 
     Each of the methods can either return recommendations or validations.
 
-    Recommendations are made in a Ambari Blueprints friendly format.
+    Recommendations are made in a Ambari Blueprints friendly format. 
     Validations are an array of validation objects.
   """
 
@@ -130,7 +129,7 @@ class StackAdvisor(object):
     @type hosts: dictionary
     @param hosts: Dictionary containing all information about hosts in this cluster
     @rtype: dictionary
-    @return: Layout recommendation of service components on cluster hosts in Ambari Blueprints friendly format.
+    @return: Layout recommendation of service components on cluster hosts in Ambari Blueprints friendly format. 
         Example: {
           "resources" : [
             {
@@ -189,8 +188,8 @@ class StackAdvisor(object):
     Returns array of Validation issues with service component layout on hosts
 
     This function takes as input all details about services being installed along with
-    hosts the components are being installed on (hostnames property is populated for
-    each component).
+    hosts the components are being installed on (hostnames property is populated for 
+    each component).  
 
     @type services: dictionary
     @param services: Dictionary containing information about services and host layout selected by the user.
@@ -205,11 +204,11 @@ class StackAdvisor(object):
               "level" : "ERROR",
               "message" : "NameNode and Secondary NameNode should not be hosted on the same machine",
               "component-name" : "NAMENODE",
-              "host" : "c6401.ambari.apache.org"
+              "host" : "c6401.ambari.apache.org" 
             },
             ...
           ]
-        }
+        }  
     """
     pass
 
@@ -225,48 +224,48 @@ class StackAdvisor(object):
     @type hosts: dictionary
     @param hosts: Dictionary containing all information about hosts in this cluster
     @rtype: dictionary
-    @return: Layout recommendation of service components on cluster hosts in Ambari Blueprints friendly format.
+    @return: Layout recommendation of service components on cluster hosts in Ambari Blueprints friendly format. 
         Example: {
          "services": [
-          "HIVE",
-          "TEZ",
+          "HIVE", 
+          "TEZ", 
           "YARN"
-         ],
+         ], 
          "recommendations": {
           "blueprint": {
-           "host_groups": [],
+           "host_groups": [], 
            "configurations": {
             "yarn-site": {
              "properties": {
-              "yarn.scheduler.minimum-allocation-mb": "682",
-              "yarn.scheduler.maximum-allocation-mb": "2048",
+              "yarn.scheduler.minimum-allocation-mb": "682", 
+              "yarn.scheduler.maximum-allocation-mb": "2048", 
               "yarn.nodemanager.resource.memory-mb": "2048"
              }
-            },
+            }, 
             "tez-site": {
              "properties": {
-              "tez.am.java.opts": "-server -Xmx546m -Djava.net.preferIPv4Stack=true -XX:+UseNUMA -XX:+UseParallelGC",
+              "tez.am.java.opts": "-server -Xmx546m -Djava.net.preferIPv4Stack=true -XX:+UseNUMA -XX:+UseParallelGC", 
               "tez.am.resource.memory.mb": "682"
              }
-            },
+            }, 
             "hive-site": {
              "properties": {
-              "hive.tez.container.size": "682",
-              "hive.tez.java.opts": "-server -Xmx546m -Djava.net.preferIPv4Stack=true -XX:NewRatio=8 -XX:+UseNUMA -XX:+UseParallelGC",
+              "hive.tez.container.size": "682", 
+              "hive.tez.java.opts": "-server -Xmx546m -Djava.net.preferIPv4Stack=true -XX:NewRatio=8 -XX:+UseNUMA -XX:+UseParallelGC", 
               "hive.auto.convert.join.noconditionaltask.size": "238026752"
              }
             }
            }
-          },
+          }, 
           "blueprint_cluster_binding": {
            "host_groups": []
           }
-         },
+         }, 
          "hosts": [
-          "c6401.ambari.apache.org",
-          "c6402.ambari.apache.org",
-          "c6403.ambari.apache.org"
-         ]
+          "c6401.ambari.apache.org", 
+          "c6402.ambari.apache.org", 
+          "c6403.ambari.apache.org" 
+         ] 
         }
     """
     pass
@@ -277,7 +276,7 @@ class StackAdvisor(object):
 
     This function takes as input all details about services being installed along with
     configuration values entered by the user. These configurations can be validated against
-    service requirements, or host hardware to generate validation issues.
+    service requirements, or host hardware to generate validation issues. 
 
     @type services: dictionary
     @param services: Dictionary containing information about services and user configurations.
@@ -288,10 +287,10 @@ class StackAdvisor(object):
         Example: {
          "items": [
           {
-           "config-type": "yarn-site",
-           "message": "Value is less than the recommended default of 682",
-           "type": "configuration",
-           "config-name": "yarn.scheduler.minimum-allocation-mb",
+           "config-type": "yarn-site", 
+           "message": "Value is less than the recommended default of 682", 
+           "type": "configuration", 
+           "config-name": "yarn.scheduler.minimum-allocation-mb", 
            "level": "WARN"
           }
          ]
@@ -314,7 +313,7 @@ class DefaultStackAdvisor(StackAdvisor):
 
   """
   Default stack advisor implementation.
-
+  
   This implementation is used when a stack-version, or its hierarchy does not
   have an advisor. Stack-versions can extend this class to provide their own
   implement
@@ -1145,24 +1144,6 @@ class DefaultStackAdvisor(StackAdvisor):
 
     return mount_points
 
-  def getStackRoot(self, services):
-    """
-    Gets the stack root associated with the stack
-    :param services: the services structure containing the current configurations
-    :return: the stack root as specified in the config or /usr/adh
-    """
-    cluster_env = self.getServicesSiteProperties(services, "cluster-env")
-    stack_root = "/usr/adh"
-    if cluster_env and "stack_root" in cluster_env:
-      stack_root_as_str = cluster_env["stack_root"]
-      stack_roots = json.loads(stack_root_as_str)
-      if "stack_name" in cluster_env:
-        stack_name = cluster_env["stack_name"]
-        if stack_name in stack_roots:
-          stack_root = stack_roots[stack_name]
-
-    return stack_root
-
   def isSecurityEnabled(self, services):
     """
     Determines if security is enabled by testing the value of cluster-env/security enabled.
@@ -1375,7 +1356,7 @@ class DefaultStackAdvisor(StackAdvisor):
 
       if recommendation:
         put_f(name, ",".join(recommendation))
-
+        
   @classmethod
   def appendToYamlString(cls, yaml_string, list_classes):
     updated_yaml_string = ""
