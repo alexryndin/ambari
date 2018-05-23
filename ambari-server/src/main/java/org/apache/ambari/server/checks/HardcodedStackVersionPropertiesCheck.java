@@ -64,6 +64,7 @@ public class HardcodedStackVersionPropertiesCheck extends AbstractCheckDescripto
   private Provider<ConfigHelper> m_config_helper_provider;
 
   public HardcodedStackVersionPropertiesCheck() {
+    super(CheckDescription.HARDCODED_STACK_VERSION_PROPERTIES_CHECK);
   }
 
   @Override
