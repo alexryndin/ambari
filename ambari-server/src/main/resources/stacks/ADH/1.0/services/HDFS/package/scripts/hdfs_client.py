@@ -37,7 +37,8 @@ class HdfsClient(Script):
     env.set_params(params)
     self.install_packages(env)
     self.configure(env)
-
+    Execute('tar -czf /usr/lib/hadoop/mapreduce.tar.gz -C /usr/lib/hadoop-mapreduce/ .')
+    
   def configure(self, env):
     import params
     env.set_params(params)
@@ -76,4 +77,3 @@ class HdfsClientWindows(HdfsClient):
 
 if __name__ == "__main__":
   HdfsClient().execute()
-

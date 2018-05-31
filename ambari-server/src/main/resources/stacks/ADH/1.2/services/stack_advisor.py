@@ -1046,6 +1046,19 @@ class ADH12StackAdvisor(ADH11StackAdvisor):
 
         putLogsearchCommonEnvProperty('logsearch_use_external_solr', 'true')
 
+      zookeeper_hosts = self.getHostNamesWithComponent("ZOOKEEPER", "ZOOKEEPER_SERVER", services)
+      zookeeper_host_arr = []
+
+      zookeeper_port = self.getZKPort(services)
+      for i in range(len(zookeeper_hosts)):
+        zookeeper_host = zookeeper_hosts[i] + ':' + zookeeper_port
+
+        zookeeper_host_arr.append(zookeeper_host)
+
+      solr_zookeeper_url = ",".join(zookeeper_host_arr)
+
+      putLogsearchCommonEnvProperty('logsearch_external_solr_zk_quorum', solr_zookeeper_url)
+
       # recommend number of shard
       putLogsearchAttribute('logsearch.collection.service.logs.numshards', 'minimum', recommendedMinShards)
       putLogsearchAttribute('logsearch.collection.service.logs.numshards', 'maximum', recommendedMaxShards)

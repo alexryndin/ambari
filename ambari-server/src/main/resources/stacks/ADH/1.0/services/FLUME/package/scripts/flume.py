@@ -26,6 +26,7 @@ from resource_management.libraries.functions.flume_agent_helper import find_expe
 from resource_management.libraries.functions.flume_agent_helper import await_flume_process_termination
 from ambari_commons import OSConst
 from ambari_commons.os_family_impl import OsFamilyFuncImpl, OsFamilyImpl
+from resource_management.libraries.functions.show_logs import show_logs
 
 @OsFamilyFuncImpl(os_family=OSConst.WINSRV_FAMILY)
 def flume(action = None):
@@ -91,16 +92,20 @@ def flume(action = None):
       File(os.path.join(params.flume_conf_dir, n, 'ambari-meta.json'),
         action = "delete",
       )
-      
+
     Directory(params.flume_run_dir,
+              group=params.user_group,
+              owner=params.flume_user,
     )
 
     Directory(params.flume_conf_dir,
-              create_parents=True,
+              create_parents = True,
               owner=params.flume_user,
               )
-    Directory(params.flume_log_dir, 
+    Directory(params.flume_log_dir,
+              group=params.user_group,
               owner=params.flume_user,
+              create_parents=True,
               cd_access="a",
               mode=0755,
     )
@@ -172,22 +177,28 @@ def flume(action = None):
         if params.has_metric_collector:
           extra_args = '-Dflume.monitoring.type=org.apache.hadoop.metrics2.sink.flume.FlumeTimelineMetricsSink ' \
                        '-Dflume.monitoring.node={0}:{1}'
+          # TODO check if this is used.
           extra_args = extra_args.format(params.metric_collector_host, params.metric_collector_port)
 
         flume_cmd = flume_base.format(agent, flume_agent_conf_dir,
            flume_agent_conf_file, extra_args, agent)
 
-        Execute(flume_cmd, 
+        Execute(flume_cmd,
           wait_for_finish=False,
           environment={'JAVA_HOME': params.java_home}
         )
         # sometimes startup spawns a couple of threads - so only the first line may count
         pid_cmd = as_sudo(('pgrep', '-o', '-u', params.flume_user, '-f', format('^{java_home}.*{agent}.*'))) + \
         " | " + as_sudo(('tee', flume_agent_pid_file)) + "  && test ${PIPESTATUS[0]} -eq 0"
-        Execute(pid_cmd,
-                logoutput=True,
-                tries=20,
-                try_sleep=10)
+
+        try:
+          Execute(pid_cmd,
+                  logoutput=True,
+                  tries=20,
+                  try_sleep=10)
+        except:
+          show_logs(params.flume_log_dir, params.flume_user)
+          raise
 
     pass
   elif action == 'stop':
@@ -205,14 +216,17 @@ def flume(action = None):
 
     for agent in agent_names:
       pid_file = format("{flume_run_dir}/{agent}.pid")
-      
+
       if is_flume_process_live(pid_file):
         pid = shell.checked_call(("cat", pid_file), sudo=True)[1].strip()
         Execute(("kill", "-15", pid), sudo=True)    # kill command has to be a tuple
-      
-      if not await_flume_process_termination(pid_file):
+        if not await_flume_process_termination(pid_file, try_count=30):
+          Execute(("kill", "-9", pid), sudo=True)
+
+      if not await_flume_process_termination(pid_file, try_count=10):
+        show_logs(params.flume_log_dir, params.flume_user)
         raise Fail("Can't stop flume agent: {0}".format(agent))
-        
+
       File(pid_file, action = 'delete')
 
 
@@ -286,4 +300,3 @@ def get_desired_state():
     return sudo.read_file(params.ambari_state_file)
   else:
     return 'INSTALLED'
-  

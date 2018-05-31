@@ -48,6 +48,7 @@ class PigClientLinux(PigClient):
   def install(self, env):
     self.install_packages(env)
     self.configure(env)
+    Execute('tar -czf /usr/lib/pig/pig.tar.gz -C /usr/lib/pig/lib/ .')
 
 @OsFamilyImpl(os_family=OSConst.WINSRV_FAMILY)
 class PigClientWindows(PigClient):

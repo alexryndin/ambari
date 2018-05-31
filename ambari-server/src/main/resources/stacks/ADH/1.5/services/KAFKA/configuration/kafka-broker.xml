@@ -165,4 +165,10 @@
     </depends-on>
     <on-ambari-upgrade add="true"/>
   </property>
+  <property>
+        <name>kafka.broker.jmx.port</name>
+        <value>9999</value>
+        <description>Kafka broker jmx port</description>
+        <on-ambari-upgrade add="true"/>
+  </property>
 </configuration>

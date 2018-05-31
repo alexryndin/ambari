@@ -58,7 +58,13 @@
                 <config-type>example-collection</config-type>
             </configuration-dependencies>
             <restartRequiredAfterChange>true</restartRequiredAfterChange>
-
+	
+	    <themes>
+        	<theme>
+	          <fileName>theme.json</fileName>
+        	  <default>true</default>
+	        </theme>
+	    </themes>
             <quickLinksConfigurations>
                 <quickLinksConfiguration>
                     <fileName>quicklinks.json</fileName>

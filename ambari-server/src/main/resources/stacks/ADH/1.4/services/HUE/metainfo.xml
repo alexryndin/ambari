@@ -69,7 +69,6 @@
       <!-- how many of these components are allowed in a cluster -->
       <cardinality>0+</cardinality>
       <!-- reference to (and details of) what script is to be used to install/stop/start/config the service -->
-      <versionAdvertised>true</versionAdvertised>
       <commandScript>
         <script>scripts/httpfs.py</script>
         <scriptType>PYTHON</scriptType>

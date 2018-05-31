@@ -31,7 +31,7 @@ class ServiceCheck(Script):
 
     # TODO, Kafka Service check should be more robust , It should get all the broker_hosts
     # Produce some messages and check if consumer reads same no.of messages.
-    
+
     kafka_config = self.read_kafka_config()
     topic = "ambari_kafka_service_check"
     create_topic_cmd_created_output = "Created topic \"ambari_kafka_service_check\"."
@@ -43,13 +43,13 @@ class ServiceCheck(Script):
     # run create topic command only if the topic doesn't exists
     if topic not in topic_exists_cmd_out:
       create_topic_cmd = format("{kafka_home}/bin/kafka-topics.sh --zookeeper {kafka_config[zookeeper.connect]} --create --topic {topic} --partitions 1 --replication-factor 1")
-      command = source_cmd + " ; " + create_topic_cmd
+      command = 'export JAVA_HOME='+ params.java64_home + ' ; ' + create_topic_cmd
       Logger.info("Running kafka create topic command: %s" % command)
       call_and_match_output(command, format("({create_topic_cmd_created_output})|({create_topic_cmd_exists_output})"), "Failed to check that topic exists", user=params.kafka_user)
 
   def read_kafka_config(self):
     import params
-    
+
     kafka_config = {}
     content = sudo.read_file(params.conf_dir + "/server.properties")
     for line in content.splitlines():
@@ -58,7 +58,7 @@ class ServiceCheck(Script):
 
       key, value = line.split("=")
       kafka_config[key] = value.replace("\n", "")
-    
+
     return kafka_config
 
 if __name__ == "__main__":

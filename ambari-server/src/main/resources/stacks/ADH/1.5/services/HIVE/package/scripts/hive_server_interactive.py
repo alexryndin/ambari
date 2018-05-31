@@ -281,8 +281,8 @@ class HiveServerInteractiveDefault(HiveServerInteractive):
 
       unique_name = "llap-slider%s" % datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
 
-      cmd = format("/usr/lib/hive/bin/hive --service llap --slider-am-container-mb {params.slider_am_container_mb} "
-                   "--size 3072m --cache 1024m --xmx {params.llap_heap_size}m "
+      cmd = format("{stack_root}/hive/bin/hive --service llap --slider-am-container-mb {params.slider_am_container_mb} "
+                   "--size {params.llap_daemon_container_size}m --cache {params.hive_llap_io_mem_size}m --xmx {params.llap_heap_size}m "
                    "--loglevel {params.llap_log_level} {params.llap_extra_slider_opts} --output {LLAP_PACKAGE_CREATION_PATH}/{unique_name}")
 
       # Append params that are supported from Hive llap GA version.
@@ -336,7 +336,7 @@ class HiveServerInteractiveDefault(HiveServerInteractive):
 
         # E.g., output:
         # Prepared llap-slider-05Apr2016/run.sh for running LLAP on Slider
-        exp = r".*Prepared (.*?run.sh) for running LLAP" 
+        exp = r".*Prepared (.*?run.sh) for running LLAP"
         run_file_path = None
         out_splits = output.split("\n")
         for line in out_splits:
@@ -679,4 +679,3 @@ class HiveServerInteractiveWindows(HiveServerInteractive):
 
 if __name__ == "__main__":
   HiveServerInteractive().execute()
-

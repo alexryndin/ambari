@@ -232,10 +232,24 @@ gpgcheck=0</value>
     </value-attributes>
     <on-ambari-upgrade add="true"/>
   </property>
-  <!-- Define stack_tools property in the base stack. DO NOT override this property for each stack version -->
+  <!-- Define stack_packages property in the base stack. DO NOT override this property for each stack version -->
+  <property>
+    <name>stack_packages</name>
+    <value/>
+    <description>Associations between component and stack-select tools.</description>
+    <property-type>VALUE_FROM_PROPERTY_FILE</property-type>
+    <value-attributes>
+      <property-file-name>stack_packages.json</property-file-name>
+      <property-file-type>json</property-file-type>
+      <read-only>true</read-only>
+      <overridable>false</overridable>
+      <visible>false</visible>
+    </value-attributes>
+    <on-ambari-upgrade add="true"/>
+  </property>
   <property>
     <name>stack_root</name>
-    <value>{"ADH":"/usr/lib/"}</value>
+    <value>{"ADH":"/usr/lib"}</value>
     <description>JSON which defines the stack root by stack name</description>
     <value-attributes>
       <read-only>true</read-only>
@@ -288,6 +302,12 @@ gpgcheck=0</value>
     <name>enable_external_ranger</name>
     <value>false</value>
     <description>Flag to turn on when external setup of External Ranger is done.</description>
+    <on-ambari-upgrade add="false"/>
+  </property>
+  <property>
+    <name>manage_hive_fsroot</name>
+    <value>true</value>
+    <description>If flag is set to true, ambari will manage fsroot for Hive, by setting it to fs.defautlFS of local HDFS</description>
     <on-ambari-upgrade add="false"/>
   </property>
 </configuration>

@@ -59,6 +59,7 @@ class SliderClientLinux(SliderClient):
   def configure(self, env):
     import params
     env.set_params(params)
+    Execute('ln -sf /usr/lib/slider/bin/slider /usr/bin/slider')
     slider()
 
 @OsFamilyImpl(os_family=OSConst.WINSRV_FAMILY)

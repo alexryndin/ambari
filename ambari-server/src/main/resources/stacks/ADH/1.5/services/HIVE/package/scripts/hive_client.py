@@ -33,7 +33,8 @@ class HiveClient(Script):
     import params
     self.install_packages(env)
     self.configure(env)
-
+    Execute('tar -czf /usr/lib/hive/hive.tar.gz -C /usr/lib/hive/lib/ .')
+    
   def status(self, env):
     raise ClientComponentHasNoStatus()
 
@@ -66,4 +67,3 @@ class HiveClientDefault(HiveClient):
 
 if __name__ == "__main__":
   HiveClient().execute()
-

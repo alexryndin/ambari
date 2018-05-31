@@ -618,4 +618,11 @@
       <selection-cardinality>1</selection-cardinality>
     </value-attributes>
   </property>
+  <property>
+    <name>yarn.log.server.web-service.url</name>
+    <value></value>
+    <description>
+          URL for log aggregation server web service
+    </description>
+  </property>
 </configuration>

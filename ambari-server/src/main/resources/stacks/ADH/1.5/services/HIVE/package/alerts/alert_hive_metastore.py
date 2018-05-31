@@ -145,7 +145,7 @@ def execute(configurations={}, parameters={}, host_name=None):
         kerberos_executable_search_paths = configurations[KERBEROS_EXECUTABLE_SEARCH_PATHS_KEY]
       else:
         kerberos_executable_search_paths = None
-
+             
       kinit_path_local = get_kinit_path(kerberos_executable_search_paths)
       kinitcmd=format("{kinit_path_local} -kt {smokeuser_keytab} {smokeuser_principal}; ")
 
@@ -173,7 +173,7 @@ def execute(configurations={}, parameters={}, host_name=None):
                  --hiveconf hive.metastore.failure.retries=1\
                  --hiveconf hive.metastore.connect.retries=1\
                  --hiveconf hive.metastore.client.socket.timeout=14\
-                 --hiveconf hive.execution.engine=mr -e '!echo default;'")
+                 --hiveconf hive.execution.engine=mr -e 'show databases;'")
 
     start_time = time.time()
 
