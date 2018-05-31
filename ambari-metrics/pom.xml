@@ -39,18 +39,18 @@
     <python.ver>python &gt;= 2.6</python.ver>
     <deb.python.ver>python (&gt;= 2.6)</deb.python.ver>
     <!--TODO change to HDP URL-->
-    <hbase.tar>https://ci.arenadata.io/artifactory/adh15-common/hbase-1.3.1-bin.tar.gz</hbase.tar>
-    <hbase.folder>hbase-1.3.1</hbase.folder>
-    <hadoop.tar>http://private-repo-1.hortonworks.com/HDP/centos6/2.x/updates/2.3.4.0-3347/tars/hadoop-2.7.1.2.3.4.0-3347.tar.gz</hadoop.tar>
-    <hadoop.folder>hadoop-2.7.1.2.3.4.0-3347</hadoop.folder>
+    <hbase.tar>https://public-repo-1.hortonworks.com/HDP/centos6/2.x/updates/2.6.4.0/tars/hbase/hbase-1.1.2.2.6.4.0-91.tar.gz</hbase.tar>
+    <hbase.folder>hbase-1.1.2.2.6.4.0-91</hbase.folder>
+    <hadoop.tar>https://public-repo-1.hortonworks.com/HDP/centos6/2.x/updates/2.6.4.0/tars/hadoop/hadoop-2.7.3.2.6.4.0-91.tar.gz</hadoop.tar>
+    <hadoop.folder>hadoop-2.7.3.2.6.4.0-91</hadoop.folder>
     <hbase.winpkg.zip>https://msibuilds.blob.core.windows.net/hdp/2.x/2.2.4.2/2/hbase-0.98.4.2.2.4.2-0002-hadoop2.winpkg.zip</hbase.winpkg.zip>
     <hbase.winpkg.folder>hbase-0.98.4.2.2.4.2-0002-hadoop2</hbase.winpkg.folder>
     <hadoop.winpkg.zip>https://msibuilds.blob.core.windows.net/hdp/2.x/2.2.4.2/2/hadoop-2.6.0.2.2.4.2-0002.winpkg.zip</hadoop.winpkg.zip>
     <hadoop.winpkg.folder>hadoop-2.6.0.2.2.4.2-0002</hadoop.winpkg.folder>
     <grafana.folder>grafana-2.6.0</grafana.folder>
     <grafana.tar>https://grafanarel.s3.amazonaws.com/builds/grafana-2.6.0.linux-x64.tar.gz</grafana.tar>
-    <phoenix.tar>https://ci.arenadata.io/artifactory/adh15-common/phoenix-4.11.0-HBase-1.3.tar.gz</phoenix.tar>
-    <phoenix.folder>phoenix-4.11.0-HBase-1.3</phoenix.folder>
+    <phoenix.tar>https://public-repo-1.hortonworks.com/HDP/centos6/2.x/updates/2.6.4.0/tars/phoenix/phoenix-4.7.0.2.6.4.0-91.tar.gz</phoenix.tar>
+    <phoenix.folder>phoenix-4.7.0.2.6.4.0-91</phoenix.folder>
     <resmonitor.install.dir>
       /usr/lib/python2.6/site-packages/resource_monitoring
     </resmonitor.install.dir>
@@ -78,7 +78,7 @@
     <repository>
       <id>apache-hadoop</id>
       <name>hdp</name>
-      <url>https://repository.apache.org/content/repositories/releases</url>
+      <url>http://repo.hortonworks.com/content/groups/public/</url>
     </repository>
     <repository>
       <id>apache-snapshots</id>
@@ -324,6 +324,33 @@
           <version>1.0.0.0-SNAPSHOT</version>
         </dependency>
       </dependencies>
+    </profile>
+    <profile>
+      <id>sign-artifacts</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>
