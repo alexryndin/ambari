@@ -21,7 +21,7 @@
 
 import os
 import fnmatch
-from ambari_commons import subprocess32
+import subprocess
 
 def find(pattern, classPaths):
     paths = classPaths.split(os.pathsep)
@@ -31,14 +31,14 @@ def find(pattern, classPaths):
         # remove * if it's at the end of path
         if ((path is not None) and (len(path) > 0) and (path[-1] == '*')) :
             path = path[:-1]
-    
+
         for root, dirs, files in os.walk(path):
             # sort the file names so *-client always precedes *-thin-client
             files.sort()
             for name in files:
                 if fnmatch.fnmatch(name, pattern):
                     return os.path.join(root, name)
-                
+
     return ""
 
 def findFileInPathWithoutRecursion(pattern, path):
@@ -62,7 +62,7 @@ def which(file):
 def findClasspath(file):
     aPath = which(file)
     command = "%s%s" %(aPath, ' classpath')
-    return subprocess32.Popen(command, shell=True, stdout=subprocess32.PIPE).stdout.read()
+    return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).stdout.read()
 
 def setPath():
     PHOENIX_CLIENT_JAR_PATTERN = "phoenix-*-client.jar"
@@ -167,8 +167,8 @@ def shell_quote(args):
     :return: shell quoted string
     """
     if os.name == 'nt':
-        from ambari_commons import subprocess32
-        return subprocess32.list2cmdline(args)
+        import subprocess
+        return subprocess.list2cmdline(args)
     else:
         # pipes module isn't available on Windows
         import pipes
