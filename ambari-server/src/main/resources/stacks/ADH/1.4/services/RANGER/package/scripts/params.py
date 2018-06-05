@@ -73,7 +73,7 @@ stack_supports_pid = check_stack_feature(StackFeature.RANGER_PID_SUPPORT, versio
 stack_supports_ranger_admin_password_change = check_stack_feature(StackFeature.RANGER_ADMIN_PASSWD_CHANGE, version_for_stack_feature_checks)
 stack_supports_ranger_setup_db_on_start = check_stack_feature(StackFeature.RANGER_SETUP_DB_ON_START, version_for_stack_feature_checks)
 stack_supports_ranger_tagsync_ssl_xml_support = check_stack_feature(StackFeature.RANGER_TAGSYNC_SSL_XML_SUPPORT, version_for_stack_feature_checks)
-stack_supports_ranger_solr_configs = check_stack_feature(StackFeature.RANGER_SOLR_CONFIG_SUPPORT, version_for_stack_feature_checks)
+stack_supports_ranger_solr_configs = True 
 stack_supports_secure_ssl_password = check_stack_feature(StackFeature.SECURE_RANGER_SSL_PASSWORD, version_for_stack_feature_checks)
 
 downgrade_from_version = default("/commandParams/downgrade_from_version", None)
@@ -275,7 +275,7 @@ usersync_log4j = config['configurations']['usersync-log4j']['content']
 tagsync_log4j = config['configurations']['tagsync-log4j']['content']
 
 # ranger kerberos
-security_enabled = config['configurations']['cluster-env']['security_enabled']
+security_enabled = False 
 namenode_hosts = default("/clusterHostInfo/namenode_host", [])
 has_namenode = len(namenode_hosts) > 0
 
@@ -293,7 +293,7 @@ infra_solr_hosts = default("/clusterHostInfo/infra_solr_hosts", [])
 has_infra_solr = len(infra_solr_hosts) > 0
 is_solrCloud_enabled = default('/configurations/ranger-env/is_solrCloud_enabled', False)
 is_external_solrCloud_enabled = default('/configurations/ranger-env/is_external_solrCloud_enabled', False)
-solr_znode = '/ranger_audits'
+solr_znode = '/solr'
 if stack_supports_infra_client and is_solrCloud_enabled:
   solr_znode = default('/configurations/ranger-admin-site/ranger.audit.solr.zookeepers', 'NONE')
   if solr_znode != '' and solr_znode.upper() != 'NONE':

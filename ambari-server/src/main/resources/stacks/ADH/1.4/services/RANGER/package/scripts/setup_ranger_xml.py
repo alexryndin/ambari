@@ -694,8 +694,11 @@ def create_core_site_xml(conf_dir):
 def setup_ranger_audit_solr():
   import params
 
+  from ra import ra
+  ra.log("params.security_enabled="+str(params.security_enabled))
+  ra.log("params.stack_supports_ranger_kerberos="+str(params.stack_supports_ranger_kerberos))
   if params.security_enabled and params.stack_supports_ranger_kerberos:
-
+ 
     if params.solr_jaas_file is not None:
       File(format("{solr_jaas_file}"),
         content=Template("ranger_solr_jaas_conf.j2"),
@@ -704,6 +707,8 @@ def setup_ranger_audit_solr():
   try:
     check_znode()
 
+    from ra import ra
+    ra.log ('level1 params.stack_supports_ranger_solr_configs'+str(params.stack_supports_ranger_solr_configs))
     if params.stack_supports_ranger_solr_configs:
       Logger.info('Solr configrations supported,creating solr-configurations.')
       File(format("{ranger_solr_conf}/solrconfig.xml"),
