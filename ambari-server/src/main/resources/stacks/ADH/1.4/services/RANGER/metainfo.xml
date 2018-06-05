@@ -100,6 +100,7 @@
         <config-type>admin-properties</config-type>
         <config-type>ranger-site</config-type>
         <config-type>usersync-properties</config-type>
+        <config-type>ranger-solr-configuration</config-type>
 
 
       </configuration-dependencies>
