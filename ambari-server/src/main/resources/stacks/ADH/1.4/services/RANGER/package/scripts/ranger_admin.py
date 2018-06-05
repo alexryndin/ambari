@@ -98,10 +98,6 @@ class RangerAdmin(Script):
 
     # setup db only if in case HDP version is > 2.6
     self.configure(env, upgrade_type=upgrade_type, setup_db=params.stack_supports_ranger_setup_db_on_start)
-    from ra import ra
-    ra.log("params.stack_supports_infra_client"+str(params.stack_supports_infra_client))
-    ra.log("params.audit_solr_enabled"+str(params.audit_solr_enabled))
-    ra.log("params.issolrcloud_enabled"+str(params.is_solrCloud_enabled))
     if params.audit_solr_enabled and params.is_solrCloud_enabled:
       solr_cloud_util.setup_solr_client(params.config, custom_log4j = params.custom_log4j)
       setup_ranger_audit_solr()
