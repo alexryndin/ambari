@@ -150,6 +150,29 @@ def kms(upgrade_type=None):
       cd_access = "a"
     )
 
+    cconf_dir = format('{kms_home}/ews/webapp/WEB-INF/classes/conf') 
+    Directory(cconf_dir, 
+      owner = params.unix_user, 
+      group = params.unix_group, 
+      not_if=format('ls {cconf_dir}'), 
+      create_parents = True 
+    ) 
+   
+    Execute(('rm','-rf', format('{kms_conf_dir}')), # Because at this step ranger_conf is already created. 
+      sudo=True) 
+
+
+    Execute(('ln','-sf', format('{kms_home}/ews/webapp/WEB-INF/classes/conf'), format('{kms_home}/conf')),
+      not_if=format("ls {kms_home}/conf"),
+      only_if=format("ls {kms_home}/ews/webapp/WEB-INF/classes/conf"),
+      sudo=True)
+  
+    Execute(('ln','-sf', format('{kms_home}/conf'), format('{kms_conf_dir}')),
+      not_if=format("ls {kms_conf_dir}"),
+      only_if=format("ls {kms_home}/conf"),
+      sudo=True)
+
+
     copy_jdbc_connector()
 
     File(format("/usr/lib/ambari-agent/{check_db_connection_jar_name}"),
