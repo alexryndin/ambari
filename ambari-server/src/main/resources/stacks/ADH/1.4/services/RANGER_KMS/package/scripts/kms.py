@@ -152,8 +152,8 @@ def kms(upgrade_type=None):
 
     cconf_dir = format('{kms_home}/ews/webapp/WEB-INF/classes/conf') 
     Directory(cconf_dir, 
-      owner = params.unix_user, 
-      group = params.unix_group, 
+      owner = params.kms_user, 
+      group = params.kms_group, 
       not_if=format('ls {cconf_dir}'), 
       create_parents = True 
     ) 
